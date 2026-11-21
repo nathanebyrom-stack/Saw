@@ -1,0 +1,10 @@
+        <!-- v5 · live check: a website address typed here is measured by the Health Check engine and the page redraws from the result -->
+        <form class="runbox" id="runForm" novalidate>
+          <label for="runUrl">Check a website</label>
+          <div class="runrow">
+            <input id="runUrl" name="url" type="text" inputmode="url" autocomplete="url" spellcheck="false" autocapitalize="off" maxlength="200" placeholder="www.yourcompany.co.uk" aria-describedby="runStatus">
+            <button class="btn gold" type="submit" id="runBtn">Run health check</button>
+          </div>
+          <div class="runbar" id="runBar" hidden aria-hidden="true"><i></i></div>
+          <p class="runstatus" id="runStatus" role="status" aria-live="polite"></p>
+        </form>

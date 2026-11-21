@@ -1,0 +1,30 @@
+
+/* ---------- v5 · live check form, Not measured status, automatic-report notes ---------- */
+.runbox{margin:0 0 22px;padding:14px 16px 12px;border-radius:16px;border:1.5px solid var(--hero-rule);background:rgba(255,255,255,.07);max-width:38em}
+body[data-bg="b"] .runbox{background:#fff}
+body[data-bg="c"] .runbox{background:rgba(255,255,255,.3)}
+.runbox label{display:block;font:600 11px/1.3 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--hero-muted);margin:0 0 8px}
+.runrow{display:flex;flex-wrap:wrap;gap:8px}
+.runrow input{flex:1 1 220px;min-width:0;font:500 16px/1.3 var(--f-body);color:#0E0F11;background:#fff;border:2px solid #0E0F11;border-radius:999px;padding:11px 16px;min-height:46px}
+.runrow input::placeholder{color:#6B6F75;opacity:1}
+.runrow input[aria-invalid="true"]{border-color:#D7263D;box-shadow:0 0 0 2px #D7263D}
+.runrow input:disabled{background:#E9E7E1;color:#4F5358}
+.runrow .btn{min-height:46px}
+.runrow .btn:disabled{opacity:.65;cursor:default;transform:none}
+.runbar{height:4px;border-radius:99px;background:var(--hero-rule);overflow:hidden;margin-top:10px}
+.runbar[hidden]{display:none}
+.runbar i{display:block;height:100%;width:38%;border-radius:99px;background:var(--accent);animation:runSlide 1.5s ease-in-out infinite alternate}
+@keyframes runSlide{from{transform:translateX(-20%)}to{transform:translateX(185%)}}
+@media (prefers-reduced-motion: reduce){.runbar i{animation:none!important;width:100%;opacity:.6}}
+.runstatus{margin:8px 0 0;font:500 14px/1.45 var(--f-body);color:var(--hero-ink);min-height:1.45em}
+.runstatus.err{font-weight:600}
+.runstatus.err::before{content:"!";display:inline-grid;place-items:center;width:18px;height:18px;margin-right:7px;border-radius:50%;background:var(--accent);color:var(--bg-base);font:800 12px/1 var(--f-mono);vertical-align:1px}
+.runstatus button{appearance:none;border:0;background:none;padding:0;margin-left:6px;font:inherit;font-weight:600;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.tally.nm5{grid-template-columns:repeat(5,1fr)}
+.tally.nm5 div{font-size:10px}
+#hcNotes{margin:8px 0 0;padding-left:18px}
+#hcNotes[hidden],#hcAuto[hidden]{display:none}
+@media print{.runbox{display:none!important}}
+/* v5 · fix carried over from v4.8: the Before/After switch rule (.ba, absolute at 1100px+) also caught the nine
+   "Now -> Fixed" pictures in the area headings and stacked them in the page's top-right corner */
+.ghead .ba{position:static;margin:0}
