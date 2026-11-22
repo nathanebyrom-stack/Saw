@@ -1,6 +1,13 @@
 // Two local test sites: "tired" (a Vellmoor-like poor site) and "sharp" (a well-kept one).
 import http from 'node:http';
-const big = Buffer.alloc(2_400_000, 1);
+// minimal image files: a real header with the pixel size, padded to a file size
+function jpeg(w, h, size) { const b = Buffer.alloc(size, 0); Buffer.from([0xff,0xd8,0xff,0xe0,0x00,0x10,0x4a,0x46,0x49,0x46,0x00,0x01,0x01,0x00,0x00,0x01,0x00,0x01,0x00,0x00,0xff,0xc0,0x00,0x11,0x08,h>>8,h&255,w>>8,w&255,0x03]).copy(b); return b; }
+function webp(w, h, size) { const b = Buffer.alloc(size, 0); b.write('RIFF', 0); b.writeUInt32LE(size - 8, 4); b.write('WEBPVP8X', 8); b.writeUInt32LE(10, 16); b.writeUIntLE(w - 1, 24, 3); b.writeUIntLE(h - 1, 27, 3); return b; }
+function img(site, path) {
+  const m = /-(\d+)\.(\w+)$/.exec(path);
+  if (m) return m[2] === 'webp' ? webp(+m[1], Math.round(+m[1] * 0.56), 90_000) : jpeg(+m[1], Math.round(+m[1] * 0.56), 90_000);
+  return site === 'tired' ? jpeg(1024, 640, 2_400_000) : webp(1200, 800, 60_000);
+}
 const tired = {
   '/': `<html><head><title>Home | Harrowgate</title><meta name="generator" content="Drupal 7 (http://drupal.org)"></head><body>
     <table width="960"><tr><td><img src="/img/hero.jpg"><img src="/img/a.jpg"><img src="/img/b.jpg"><img src="http://tired.test/img/c.jpg"></td></tr></table>
@@ -19,7 +26,7 @@ const sharp = {
     <meta name="viewport" content="width=device-width, initial-scale=1"><meta name="generator" content="WordPress 6.8.1"><link rel="stylesheet" href="/wp-content/themes/c/style.css">
     <script src="https://js.hs-scripts.com/123.js"></script><script src="https://www.googletagmanager.com/gtm.js"></script></head><body>
     <nav><a href="/capabilities">Capabilities</a><a href="/plant-list">Plant list</a><a href="/case-studies">Case studies</a><a href="/quality">Quality</a><a href="/contact">Request a quote</a></nav>
-    <h1>5-axis CNC machining for aerospace and medical, 1 to 5,000 off</h1><img src="/img/shop.webp" alt="Our shop floor">
+    <h1>5-axis CNC machining for aerospace and medical, 1 to 5,000 off</h1><img src="/img/shop-1200.webp" srcset="/img/shop-1200.webp 1200w, /img/shop-2560.webp 2560w" sizes="100vw" alt="Our shop floor">
     <a href="tel:+441130000000">0113 000 0000</a> <a href="https://wa.me/441130000000">WhatsApp us</a> <a href="https://calendly.com/calderbrook/call">Book a call</a>
     <p>© 2026 Calderbrook Precision. AS9100 and ISO 9001 certified.</p></body></html>`,
   '/capabilities': `<html><head><title>Capabilities and tolerances | Calderbrook</title></head><body><h1>Capabilities</h1><p>We hold ±0.01 mm on titanium, 316L stainless and 7075 aluminium.</p></body></html>`,
@@ -36,7 +43,7 @@ const onepage = {
   '/': `<!doctype html><html lang="en-GB"><head><title>Northgate Digital | Websites for UK engineering firms</title><meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="description" content="Websites and quote systems for engineering firms."><link rel="stylesheet" href="/css/site.css"><script src="/js/site.js" defer></script></head><body>
     <nav><a href="#services">Services</a><a href="#work">Work</a><a href="#contact">Contact</a></nav>
-    <section id="hero"><h1>Websites that win orders for engineering firms</h1></section>
+    <section id="hero"><h1>Websites that win orders for engineering firms</h1><video autoplay muted poster="/img/poster-1920.webp"></video></section>
     <section id="services"><h2>What we build</h2><p>We speak drawing, tolerance and finish, and build sites in stainless-steel-solid code.</p></section>
     <section id="work"><h2>Recent work</h2><p>Three firms we rebuilt this year, from the first drawing to live orders, with the results each one saw.</p>
       <article><h3>Fluid Pumps Ltd</h3><p>New site and quote form.</p></article><article><h3>AOE Machining</h3><p>Rebuild and SEO.</p></article><article><h3>Moss Fabrication</h3><p>Landing pages.</p></article></section>
@@ -51,7 +58,7 @@ export function serve(site, port, delay = 0) {
     const s = http.createServer((req, res) => {
       const path = req.url.split('?')[0];
       setTimeout(() => {
-        if (path.startsWith('/img/')) { const b = site === 'tired' ? big : Buffer.alloc(60_000, 1); res.writeHead(200, { 'content-type': 'image/jpeg', 'content-length': b.length }); return res.end(b); }
+        if (path.startsWith('/img/')) { const b = img(site, path); res.writeHead(200, { 'content-type': 'image/' + (b[0] === 0xff ? 'jpeg' : 'webp'), 'content-length': b.length }); return res.end(b); }
         if (pages[path] == null) { res.writeHead(404, { 'content-type': 'text/html' }); return res.end('<html><body>Not found</body></html>'); }
         res.writeHead(200, { 'content-type': path.endsWith('.css') ? 'text/css' : path.endsWith('.xml') ? 'application/xml' : 'text/html; charset=utf-8', ...(site === 'onepage' ? { server: 'cloudflare', 'cf-ray': 'x', 'content-security-policy': "default-src 'self'; script-src 'self'" } : {}) });
         res.end(pages[path]);

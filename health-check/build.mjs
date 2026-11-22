@@ -28,6 +28,7 @@ rep('css', '</style>', read('web/styles.css') + '</style>');
 
 /* ---- markup ---- */
 rep('root open', '<body data-bg="a">', '<body data-bg="a">\n<div id="hcRoot">');
+rep('performance test', '<!-- ================= CATEGORIES ================= -->', read('web/upsell.html') + '\n<!-- ================= CATEGORIES ================= -->');
 rep('root close', '<!-- ============ ALL COST DATA LIVES HERE', '</div><!-- /hcRoot: everything above is redrawn for each report -->\n<!-- ============ ALL COST DATA LIVES HERE');
 rep('run form', '        <dl class="client" id="client" aria-label="Report details"></dl>', read('web/hero-form.html') + '        <dl class="client" id="client" aria-label="Report details"></dl>');
 rep('draw button', '<a class="btn gold" href="#drawing">', '<a class="btn gold" id="drawBtn" href="#drawing">');
@@ -72,6 +73,7 @@ rep('scores', 'M.forEach(function(m){ m.score = m.raw; });',
   m.raw = (typeof c.score === 'number' && isFinite(c.score)) ? c.score : null;
   m.flaw = c.flaw || NM.label; m.finding = c.finding || '';
   m.nmWhy = m.raw == null ? (c.nm || c.finding || '') : '';
+  m.lockNote = c.note || (m.id === 'platform-ready' ? m.lockNote : '');   /* v5.2 · e.g. "Scored on resolution only" */
 });
 M.forEach(function(m){ m.score = m.raw; });`);
 rep('status lookup', 'var stById = {}; STATUSES.forEach(function(s){stById[s.k]=s;});',
@@ -117,6 +119,16 @@ rep('compare data', "  try { C = JSON.parse($('compare-data').textContent); } ca
 rep('boot close',
   "if (location.hash && /^#m-/.test(location.hash)){ var id = location.hash.slice(3); if (byId[id]) setTimeout(function(){goTo(id);}, 50); }\n})();\n</script>",
 `if (location.hash && /^#m-/.test(location.hash)){ var id = location.hash.slice(3); if (byId[id]) setTimeout(function(){goTo(id);}, 50); }
+/* v5.2 · naming a competitor is part of the paid Performance Test, so the free page shows the offer in its place */
+(function(){
+  document.querySelectorAll('#rivals .rv.slot form, #rivals .rv.slot .acts, #rvPrivacy, #rvNone, .sbs-empty').forEach(function(e){ e.remove(); });
+  var k = document.querySelector('[data-copy="rvKicker"]'), h = $('rvH'), i = document.querySelector('[data-copy="rvIntro"]');
+  if (k) k.textContent = 'In the Performance Test';
+  if (h) h.textContent = 'Compared with a competitor';
+  if (i) i.textContent = REPORT ? 'The Performance Test puts your site side by side with one competitor you name, across the same checks.' : 'The Performance Test puts your site side by side with one competitor you name. Here it’s a fictional firm.';
+  var open = document.querySelector('#rivals .rv.slot.open');
+  if (open) open.outerHTML = '<section class="rv pt-slot" aria-label="Competitor"><p class="rv-k">Competitor · Performance Test</p><p>Name one competitor when you order and we’ll measure them on the same checks, side by side with you.</p><div class="acts"><button type="button" class="btn small gold" data-pt-open>Order the Performance Test · £4.99</button></div></section>';
+})();
 /* v5 · a live report has no hand-drawn page to balloon, so that section steps aside; the footer says how the report was made */
 if (REPORT){
   $('drawing').classList.add('hidden'); var hcDb = $('drawBtn'); if (hcDb) hcDb.classList.add('hidden');

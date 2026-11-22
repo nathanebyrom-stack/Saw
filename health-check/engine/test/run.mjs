@@ -35,5 +35,10 @@ assert.equal(one.sector.key, 'agency'); assert.equal(one.checks['spec-page'].sco
 assert.ok(one.checks['offer-structure'].score >= 7, 'one-page offer is clear'); assert.match(one.checks['offer-structure'].finding, /digital or marketing agency, for UK engineering firms/);
 assert.equal(sharp.sector.key, 'manufacturing'); assert.equal(s['spec-page'].score, 8.0); assert.ok(s['offer-structure'].score >= 7);
 c.close();
+// main image, scored on resolution only
+assert.equal(t['hero-photo'].score, 3.0); assert.match(t['hero-photo'].flaw, /1,024 × 640 px/); assert.match(t['hero-photo'].note, /resolution only/);
+assert.equal(s['hero-photo'].score, 9.0); assert.match(s['hero-photo'].flaw, /2,560 ×/);
+assert.equal(one.checks['hero-photo'].score, 8.0); assert.equal(one.checks['hero-photo'].evidence.found, 'video poster');
+assert.match(one.checks['offer-structure'].note, /reads as a digital or marketing agency/);
 console.log('\nALL ENGINE TESTS PASSED');
 a.close(); b.close();

@@ -7,7 +7,7 @@
 // NOT been reviewed by Ruby or Leo. Every threshold lives in RUBRIC so it can be tuned
 // in one place.
 
-export const ENGINE_VERSION = "1.1.0";
+export const ENGINE_VERSION = "1.2.0";
 
 export interface Options {
   allowLocal?: boolean;        // tests only: lets the engine fetch localhost
@@ -24,6 +24,7 @@ export interface CheckResult {
   nm?: string;                 // why it wasn't measured
   basis: "measured" | "rule" | "not-measured";
   evidence?: Record<string, unknown>;
+  note?: string;               // shown under the check on the report
 }
 export interface Report {
   schema: "hc-report/1";
@@ -58,7 +59,9 @@ export const RUBRIC = {
   spec: { both: 8.0, one: 5.0, neither: 3.0 },
   machines: { listed: 7.5, listedStale: 6.0, pageOnly: 5.0, none: 3.0 },
   headline: { none: 2.5, generic: 3.0, tooShort: 4.5, recorded: 7.0 },
-  hero: { noImages: 3.0, stock: 4.0 },
+  hero: { noImages: 3.0 },
+  // main image, scored on resolution only: width in pixels of the largest version the site offers
+  heroWidth: [[2560, 9.0, "Sharp on large and high-resolution screens"], [1920, 8.0, "Sharp on standard desktop screens"], [1600, 6.5, "Fine on laptops, slightly soft on large screens"], [1280, 5.0, "Soft on desktop screens"], [800, 3.0, "Blurry or pixelated on desktop screens"], [0, 1.5, "Too small for a main image"]] as [number, number, string][],
   tools: { none: 2.0, one: 8.0, several: 9.0 },
   platform: { legacy: 2.5, unsupported: 3.0, behind: 6.0, supported: 8.0, staleBy: 1.5, noOutsideScriptsBy: 0.5, freshBonus: 0.5 },
 } as const;
@@ -108,9 +111,9 @@ function guard(u: URL, o: Options) {
 
 /* ------------------------------------------------------------------- fetch */
 const UA = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36 WebsiteHealthCheck/1.0";
-interface Fetched { ok: boolean; status: number; url: string; chain: string[]; headers: Headers | null; text: string; bytes: number; sized: boolean; ttfb: number; error?: string }
+interface Fetched { ok: boolean; status: number; url: string; chain: string[]; headers: Headers | null; text: string; raw?: Uint8Array; bytes: number; sized: boolean; ttfb: number; error?: string }
 
-async function get(start: string, o: Options, want: "text" | "size" | "head" = "text", maxBytes = 3_000_000): Promise<Fetched> {
+async function get(start: string, o: Options, want: "text" | "size" | "head" | "bytes" = "text", maxBytes = 3_000_000): Promise<Fetched> {
   const f = o.fetchImpl || fetch;
   const chain: string[] = [];
   let url = start, ttfb = 0;
@@ -129,17 +132,17 @@ async function get(start: string, o: Options, want: "text" | "size" | "head" = "
         url = new URL(res.headers.get("location")!, url).toString();
         continue;
       }
-      let text = "", bytes = 0;
+      let text = "", bytes = 0; let raw: Uint8Array | undefined;
       const len = Number(res.headers.get("content-length") || 0);
       if (want === "head" || (want === "size" && len > 0)) {
         bytes = len; try { await res.body?.cancel(); } catch { /* ignore */ }
       } else if (res.body) {
         const reader = res.body.getReader(); const chunks: Uint8Array[] = [];
-        for (;;) { const { done, value } = await reader.read(); if (done) break; bytes += value.byteLength; if (want === "text") chunks.push(value); if (bytes > maxBytes) { try { await reader.cancel(); } catch { /* ignore */ } break; } }
-        if (want === "text") { const all = new Uint8Array(chunks.reduce((n, c) => n + c.byteLength, 0)); let p = 0; for (const c of chunks) { all.set(c, p); p += c.byteLength; } text = new TextDecoder("utf-8").decode(all); }
+        for (;;) { const { done, value } = await reader.read(); if (done) break; bytes += value.byteLength; if (want === "text" || want === "bytes") chunks.push(value); if (bytes > maxBytes) { try { await reader.cancel(); } catch { /* ignore */ } break; } }
+        if (want === "text" || want === "bytes") { const all = new Uint8Array(chunks.reduce((n, c) => n + c.byteLength, 0)); let p = 0; for (const c of chunks) { all.set(c, p); p += c.byteLength; } if (want === "text") text = new TextDecoder("utf-8").decode(all); else raw = all; }
         if (len > 0 && len < bytes) bytes = len;             // transfer size when the server states it
       }
-      return { ok: res.status >= 200 && res.status < 300, status: res.status, url, chain, headers: res.headers, text, bytes, sized: len > 0, ttfb };
+      return { ok: res.status >= 200 && res.status < 300, status: res.status, url, chain, headers: res.headers, text, raw, bytes, sized: len > 0, ttfb };
     }
     return { ok: false, status: 0, url, chain, headers: null, text: "", bytes: 0, sized: false, ttfb, error: "too many redirects" };
   } catch (e) {
@@ -239,6 +242,50 @@ const BOOKING: [string, RegExp][] = [
   ["Microsoft Bookings", /outlook\.office(365)?\.com\/(owa\/calendar|book)/i], ["TidyCal", /tidycal\.com/i], ["SavvyCal", /savvycal\.com/i], ["Bookwhen", /bookwhen\.com/i],
   ["Zoho Bookings", /zohobookings|bookings\.zoho/i], ["Fresha", /fresha\.com/i], ["Booksy", /booksy\.com/i], ["Google appointments", /calendar\.google\.com\/calendar\/appointments|calendar\.app\.google/i],
 ];
+
+/* ------------------------------------------------------------ image sizes */
+// Pixel size from the first bytes of an image file: JPEG, PNG, GIF, WebP and AVIF.
+export function imageSize(b: Uint8Array): { w: number; h: number; type: string } | null {
+  const u16 = (i: number) => (b[i] << 8) | b[i + 1], u32 = (i: number) => ((b[i] << 24) >>> 0) + (b[i + 1] << 16) + (b[i + 2] << 8) + b[i + 3];
+  const le16 = (i: number) => b[i] | (b[i + 1] << 8), le24 = (i: number) => b[i] | (b[i + 1] << 8) | (b[i + 2] << 16);
+  const str = (i: number, n: number) => String.fromCharCode(...b.subarray(i, i + n));
+  if (b.length < 24) return null;
+  if (b[0] === 0x89 && str(1, 3) === "PNG") return { w: u32(16), h: u32(20), type: "PNG" };
+  if (str(0, 3) === "GIF") return { w: le16(6), h: le16(8), type: "GIF" };
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xff) { i++; continue; }
+      const m = b[i + 1];
+      if (m === 0xd8 || m === 0x01 || (m >= 0xd0 && m <= 0xd7) || m === 0xff) { i += m === 0xff ? 1 : 2; continue; }
+      if ((m >= 0xc0 && m <= 0xc3) || (m >= 0xc5 && m <= 0xc7) || (m >= 0xc9 && m <= 0xcb) || (m >= 0xcd && m <= 0xcf)) return { w: u16(i + 7), h: u16(i + 5), type: "JPEG" };
+      i += 2 + u16(i + 2);
+    }
+    return null;
+  }
+  if (str(0, 4) === "RIFF" && str(8, 4) === "WEBP") {
+    const c = str(12, 4);
+    if (c === "VP8X") return { w: 1 + le24(24), h: 1 + le24(27), type: "WebP" };
+    if (c === "VP8 ") return { w: le16(26) & 0x3fff, h: le16(28) & 0x3fff, type: "WebP" };
+    if (c === "VP8L") { const v = b[21] | (b[22] << 8) | (b[23] << 16) | (b[24] << 24); return { w: (v & 0x3fff) + 1, h: ((v >> 14) & 0x3fff) + 1, type: "WebP" }; }
+    return null;
+  }
+  if (str(4, 4) === "ftyp" && /avif|avis|mif1|heic/.test(str(8, 4) + str(16, 16))) {
+    let best: { w: number; h: number } | null = null;
+    for (let i = 0; i + 20 < b.length; i++) if (b[i] === 0x69 && str(i, 4) === "ispe") { const w = u32(i + 8), h = u32(i + 12); if (!best || w * h > best.w * best.h) best = { w, h }; }
+    return best ? { ...best, type: "AVIF" } : null;
+  }
+  return null;
+}
+function srcsetBest(srcset: string, base: string): string | null {
+  let best: { u: string; n: number } | null = null;
+  for (const part of srcset.split(/,\s+(?=\S)/)) {
+    const [u, d] = part.trim().split(/\s+/); if (!u) continue;
+    const n = d ? parseFloat(d) * (/x$/i.test(d) ? 1000 : 1) : 1;
+    if (!best || n > best.n) { try { best = { u: new URL(u, base).toString(), n }; } catch { /* ignore */ } }
+  }
+  return best ? best.u : null;
+}
 
 /* ---------------------------------------------------------------- sectors */
 // What the site is for, read from its words. The page title, description and main headings count three times.
@@ -432,12 +479,41 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
   const nm = (why: string): CheckResult => ({ score: null, flaw: "Not measured", finding: why, nm: why, basis: "not-measured" });
   const NEEDS_EYE = "This one needs a person’s eye, so it isn’t scored automatically. We go through it with you in your Performance Test.";
 
-  /* 1 hero photo */
-  const homeImgs = openTags(home.text, "img").filter((a) => !/logo|icon|sprite|pixel|badge/i.test((a.src || "") + (a.alt || "") + (a.class || "")));
-  const stock = [...res.keys()].find((u) => P.stockHost.test(u)) || homeImgs.find((a) => /stock[-_ ]?photo|shutterstock|istock/i.test((a.src || "") + (a.alt || "")))?.src;
-  if (stock) checks["hero-photo"] = { score: RUBRIC.hero.stock, flaw: "Stock photo on the home page", finding: "The home page loads an image from a stock photo library, so it could belong to any business.", basis: "rule", evidence: { stock: String(stock).slice(0, 160) } };
-  else if (!homeImgs.length && ![...res.values()].includes("img")) checks["hero-photo"] = { score: RUBRIC.hero.noImages, flaw: "No photos on the home page", finding: "The home page shows no photos of your work, your parts or your premises.", basis: "rule" };
-  else checks["hero-photo"] = nm(NEEDS_EYE);
+  /* 1 hero photo: scored on resolution only. The photo itself is judged by a designer in the Performance Test. */
+  const HERO_NOTE = "Scored on resolution only. Sharpness, lighting and whether it shows your real work are judged by a designer in the Performance Test.";
+  const notIcon = (a: Record<string, string>) => !/logo|icon|sprite|pixel|badge|avatar|flag|payment|spacer|\.svg(\?|$)/i.test((a.src || "") + " " + (a.alt || "") + " " + (a.class || "") + " " + (a.id || ""))
+    && !(Number(a.width) > 0 && Number(a.width) < 300) && !(Number(a.height) > 0 && Number(a.height) < 150);
+  const cands: { url: string; how: string }[] = [];
+  const addC = (u: string | null | undefined, how: string) => { if (!u || /^data:/i.test(u)) return; try { cands.push({ url: new URL(u.trim(), base).toString(), how }); } catch { /* ignore */ } };
+  for (const l of openTags(home.text, "link")) if (/preload/i.test(l.rel || "") && /^image$/i.test(l.as || "")) addC(l.imagesrcset ? srcsetBest(l.imagesrcset, base) : l.href, "preloaded");
+  const heroBlock = /<(section|div|header|figure)\b[^>]*\b(id|class)=["'][^"']*\b(hero|banner|masthead|slider|carousel|jumbotron|splash|cover|intro)[\w-]*[^"']*["'][^>]*>([\s\S]{0,30000})/i.exec(home.text);
+  const scanImgs = (html: string, how: string) => { for (const a of openTags(html, "img").filter(notIcon).slice(0, 3)) addC((a.srcset || a["data-srcset"]) ? srcsetBest(a.srcset || a["data-srcset"], base) : (a.src || a["data-src"] || a["data-lazy-src"]), how); };
+  for (const a of openTags(home.text, "img")) if (/high/i.test(a.fetchpriority || "") && notIcon(a)) addC(a.srcset ? srcsetBest(a.srcset, base) : a.src, "marked high priority");
+  if (heroBlock) {
+    scanImgs(heroBlock[4], "in the hero area");
+    const bg = /url\(\s*['"]?([^'")]+\.(?:jpe?g|png|webp|avif)[^'")]*)['"]?\s*\)/i.exec(heroBlock[4] + heroBlock[0]); if (bg) addC(bg[1], "hero background");
+    for (const v of openTags(heroBlock[4], "video")) addC(v.poster, "video poster");
+  }
+  for (const v of openTags(home.text, "video")) addC(v.poster, "video poster");
+  scanImgs(cleanHome, "first large image");
+  const og = openTags(home.text, "meta").find((m) => /og:image$/i.test(m.property || ""))?.content;
+  let heroImg: { url: string; how: string; w: number; h: number; type: string; kb: number } | null = null;
+  for (const c of cands.filter((c, i) => cands.findIndex((d) => d.url === c.url) === i).slice(0, 4)) {
+    const r = await get(c.url, o, "bytes", 300_000);
+    const dim = r.raw ? imageSize(r.raw) : null;
+    if (dim && dim.w >= 200) { heroImg = { ...c, ...dim, kb: Math.round((Number(r.headers?.get("content-length")) || r.bytes) / 1024) }; break; }
+  }
+  if (!heroImg && og) { const r = await get(new URL(og, base).toString(), o, "bytes", 300_000); const dim = r.raw ? imageSize(r.raw) : null; if (dim) heroImg = { url: og, how: "the image your site shares on social media", ...dim, kb: Math.round(r.bytes / 1024) }; }
+  if (heroImg) {
+    const band = RUBRIC.heroWidth.find(([min]) => heroImg!.w >= min)!;
+    const px = `${heroImg.w.toLocaleString("en-GB")} × ${heroImg.h.toLocaleString("en-GB")} px`;
+    const big = heroImg.w > 4500 ? ` It’s also far wider than any screen needs, which slows the page (see Page weight).` : "";
+    checks["hero-photo"] = { score: band[1], flaw: `Main image ${px}: ${band[2].charAt(0).toLowerCase() + band[2].slice(1)}`,
+      finding: `The largest version of your main home-page image is ${px} (${heroImg.type}). A main image shown across the full screen needs at least 1,920 px to look sharp on a desktop, and about 2,560 px on high-resolution screens.${big}`,
+      basis: "measured", note: HERO_NOTE, evidence: { url: heroImg.url.slice(0, 200), found: heroImg.how, w: heroImg.w, h: heroImg.h, type: heroImg.type, kb: heroImg.kb } };
+  } else if (!openTags(home.text, "img").filter(notIcon).length && !openTags(home.text, "video").length) {
+    checks["hero-photo"] = { score: RUBRIC.hero.noImages, flaw: "No main image on the home page", finding: "The home page has no photo of your work, your products or your premises.", basis: "measured", note: HERO_NOTE };
+  } else checks["hero-photo"] = { ...nm("We couldn’t pick out and measure your main image, so this one’s Not measured. A designer checks it in the Performance Test."), note: HERO_NOTE };
 
   /* 2 headline */
   const h1s = blocks(cleanHome, "h1").map((b) => textOf(b.inner) || (attrs((/<img\b[^>]*>/i.exec(b.inner) || [""])[0]).alt || "")).filter(Boolean);
@@ -476,6 +552,7 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
     score: cs, flaw: flawO + (listCount > 12 ? `; ${listCount} services listed` : ""),
     finding: `${reads} ${listCount > 12 ? `There are ${listCount} services or processes listed, which is a lot for a buyer to sort through. ` : ""}Judged by fixed rules from your page title, description and headings, not by a person.`,
     basis: "rule", evidence: { sector: sector.key, who: who || null, where, services: listCount },
+    note: `${reads} Scored by fixed rules from your page title, description and headings. A designer judges how clear it is to a buyer in the Performance Test.`,
   };
 
   /* 4 spec page */

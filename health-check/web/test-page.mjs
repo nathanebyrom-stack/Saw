@@ -66,6 +66,17 @@ console.log('tired: dial', tiredDial, '| verdict:', (await txt(page, '#verdictSa
 await page.screenshot({ path: OUT + '/2-tired-top.png' });
 await page.locator('#m-headline').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + '/3-tired-cards.png' });
 await page.locator('#compare').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + '/4-tired-compare.png' });
+// main image note and the competitor offer
+assert.match(await txt(page, '#m-hero-photo'), /Scored on resolution only/);
+assert.equal(await page.locator('#rivals form').count(), 0); assert.match(await txt(page, '#rivals'), /Order the Performance Test/);
+// order form: validation, then a clear "not taking orders yet" while paid orders are off
+await page.click('#ptOpen'); assert.equal(await page.inputValue('#ptUrl'), 'tired.test');
+await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /Add your name/);
+await page.fill('#ptName', 'Sam Tester'); await page.fill('#ptEmail', 'sam@tired.test'); await page.fill('#ptCompName', 'Rival Ltd');
+await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /both their company name and their website/);
+await page.fill('#ptCompUrl', 'rival.test'); await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /privacy notice/);
+await page.check('#ptConsent'); await page.click('#ptPay'); assert.match(await txt(page, '#ptStatus'), /not taking Performance Test orders just yet/);
+await page.locator('#pt').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + '/7-order.png' });
 // fix list still works on a live report
 await page.click('#addFail'); assert.ok(await page.locator('#flItems li:not(.empty)').count() >= 5);
 const reportUrl = page.url();

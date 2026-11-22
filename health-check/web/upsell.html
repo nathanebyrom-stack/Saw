@@ -1,0 +1,41 @@
+<!-- ================= v5.2 · PERFORMANCE TEST (paid) ================= -->
+<section class="pt" id="pt" aria-labelledby="ptH">
+  <div class="wrap">
+    <div class="pt-card">
+      <div class="pt-copy">
+        <p class="pt-kick">Performance Test · <span id="ptPrice">£4.99</span></p>
+        <h2 id="ptH">Get a designer’s eye on it</h2>
+        <ul class="pt-list">
+          <li>A web designer checks what software can’t: your photos, your headline and how clear your offer is.</li>
+          <li>More detail on every check, with notes on what to fix first.</li>
+          <li>Your site side by side with one competitor you name.</li>
+          <li>Your full report by email within 3 working hours (Monday to Friday, 9 to 5).</li>
+        </ul>
+        <button class="btn gold" type="button" id="ptOpen">Order the Performance Test · £4.99</button>
+        <p class="pt-small">Paid securely through Stripe. This free check stays free.</p>
+      </div>
+      <form class="pt-form" id="ptForm" novalidate hidden>
+        <h3>Order your Performance Test</h3>
+        <div class="pt-fld"><label for="ptUrl">Your website</label><input id="ptUrl" name="url" type="text" inputmode="url" autocomplete="url" spellcheck="false" autocapitalize="off" maxlength="200" placeholder="www.yourcompany.co.uk"></div>
+        <div class="pt-row">
+          <div class="pt-fld"><label for="ptName">Your name</label><input id="ptName" name="name" type="text" autocomplete="name" maxlength="80"></div>
+          <div class="pt-fld"><label for="ptEmail">Email for your report</label><input id="ptEmail" name="email" type="email" autocomplete="email" maxlength="120"></div>
+        </div>
+        <fieldset class="pt-comp">
+          <legend>Competitor to compare with (optional)</legend>
+          <div class="pt-row">
+            <div class="pt-fld"><label for="ptCompName">Company name</label><input id="ptCompName" name="compName" type="text" maxlength="80" placeholder="Competitor’s company name"></div>
+            <div class="pt-fld"><label for="ptCompUrl">Their website</label><input id="ptCompUrl" name="compUrl" type="text" inputmode="url" spellcheck="false" autocapitalize="off" maxlength="200" placeholder="www.competitor.co.uk"></div>
+          </div>
+        </fieldset>
+        <label class="pt-consent"><input id="ptConsent" name="consent" type="checkbox"> <span>I’ve read the <a id="ptPrivacy" href="https://34automation.co.uk/privacy/#health-check" target="_blank" rel="noopener">privacy notice</a> and agree to my details being used to deliver this report.</span></label>
+        <p class="pt-err" id="ptErr" role="alert"></p>
+        <div class="pt-acts">
+          <button class="btn gold" type="submit" id="ptPay">Pay £4.99 with Stripe</button>
+          <button class="btn" type="button" id="ptCancel">Cancel</button>
+        </div>
+        <p class="pt-status" id="ptStatus" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+</section>

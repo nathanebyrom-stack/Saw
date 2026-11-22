@@ -670,6 +670,42 @@ body[data-bg="c"] .runbox{background:rgba(255,255,255,.3)}
 /* v5 · fix carried over from v4.8: the Before/After switch rule (.ba, absolute at 1100px+) also caught the nine
    "Now -> Fixed" pictures in the area headings and stacked them in the page's top-right corner */
 .ghead .ba{position:static;margin:0}
+
+/* ---------- v5.2 · Performance Test offer and order form ---------- */
+.pt{padding:8px 0 0}
+.pt-card{display:grid;gap:22px;background:var(--graphite);color:#fff;border-radius:24px;padding:22px;box-shadow:0 0 0 1px rgba(201,162,76,.45)}
+@media (min-width:900px){.pt-card{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);padding:28px 30px;align-items:start}.pt-card:not(.open){grid-template-columns:1fr}}
+.pt-kick{margin:0 0 6px;font:700 12px/1.2 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.pt h2{font-size:clamp(24px,3.4vw,34px);color:#fff}
+.pt-list{margin:14px 0 18px;padding:0;list-style:none;display:grid;gap:8px;max-width:44em}
+.pt-list li{position:relative;padding-left:26px;font:500 15px/1.5 var(--f-body);color:#E8EAED}
+.pt-list li::before{content:"";position:absolute;left:2px;top:6px;width:12px;height:7px;border-left:2.5px solid var(--gold);border-bottom:2.5px solid var(--gold);transform:rotate(-45deg)}
+.pt-small{margin:10px 0 0;font:500 13px/1.4 var(--f-body);color:#A9AFB6}
+.pt-form{background:#fff;color:var(--graphite);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.pt-form[hidden]{display:none}
+.pt-form h3{font-size:20px;font-stretch:112%}
+.pt-row{display:grid;gap:12px}
+@media (min-width:560px){.pt-row{grid-template-columns:1fr 1fr}}
+.pt-fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.pt-fld label,.pt-comp legend{font:600 14px/1.2 var(--f-body)}
+.pt-fld input{width:100%;min-width:0;font:500 16px/1.3 var(--f-body);color:var(--graphite);background:#fff;border:1.5px solid #6B6F75;border-radius:12px;padding:10px 12px;min-height:44px}
+.pt-fld input:focus{outline:3px solid var(--gold);outline-offset:1px;border-color:var(--graphite)}
+.pt-fld input[aria-invalid="true"]{border-color:#D7263D;box-shadow:0 0 0 1px #D7263D}
+.pt-comp{border:1.5px dashed #C9C5BA;border-radius:14px;padding:10px 12px 12px;margin:0;min-width:0}
+.pt-comp legend{padding:0 6px}
+.pt-consent{display:flex;gap:10px;align-items:flex-start;font:500 14px/1.45 var(--f-body)}
+.pt-consent input{width:20px;height:20px;margin:2px 0 0;flex:0 0 auto;accent-color:#0E0F11}
+.pt-consent a{color:var(--graphite);font-weight:600}
+.pt-err{margin:0;font:600 14px/1.4 var(--f-body);color:#B01E31}
+.pt-err:empty{display:none}
+.pt-acts{display:flex;flex-wrap:wrap;gap:8px}
+.pt-acts .btn:not(.gold){border-color:var(--graphite)}
+.pt-status{margin:0;font:500 14px/1.45 var(--f-body);min-height:1.45em}
+.pt-status a{color:var(--graphite);font-weight:700}
+.rv.pt-slot{background:var(--graphite);color:#fff;border:2px solid var(--gold)}
+.rv.pt-slot .rv-k{color:var(--gold)}
+.rv.pt-slot p{color:#E8EAED}
+@media print{.pt{display:none!important}}
 </style>
 </head>
 <body data-bg="a">
@@ -807,6 +843,48 @@ body[data-bg="c"] .runbox{background:rgba(255,255,255,.3)}
     </div>
   </section>
 </div>
+
+<!-- ================= v5.2 · PERFORMANCE TEST (paid) ================= -->
+<section class="pt" id="pt" aria-labelledby="ptH">
+  <div class="wrap">
+    <div class="pt-card">
+      <div class="pt-copy">
+        <p class="pt-kick">Performance Test · <span id="ptPrice">£4.99</span></p>
+        <h2 id="ptH">Get a designer’s eye on it</h2>
+        <ul class="pt-list">
+          <li>A web designer checks what software can’t: your photos, your headline and how clear your offer is.</li>
+          <li>More detail on every check, with notes on what to fix first.</li>
+          <li>Your site side by side with one competitor you name.</li>
+          <li>Your full report by email within 3 working hours (Monday to Friday, 9 to 5).</li>
+        </ul>
+        <button class="btn gold" type="button" id="ptOpen">Order the Performance Test · £4.99</button>
+        <p class="pt-small">Paid securely through Stripe. This free check stays free.</p>
+      </div>
+      <form class="pt-form" id="ptForm" novalidate hidden>
+        <h3>Order your Performance Test</h3>
+        <div class="pt-fld"><label for="ptUrl">Your website</label><input id="ptUrl" name="url" type="text" inputmode="url" autocomplete="url" spellcheck="false" autocapitalize="off" maxlength="200" placeholder="www.yourcompany.co.uk"></div>
+        <div class="pt-row">
+          <div class="pt-fld"><label for="ptName">Your name</label><input id="ptName" name="name" type="text" autocomplete="name" maxlength="80"></div>
+          <div class="pt-fld"><label for="ptEmail">Email for your report</label><input id="ptEmail" name="email" type="email" autocomplete="email" maxlength="120"></div>
+        </div>
+        <fieldset class="pt-comp">
+          <legend>Competitor to compare with (optional)</legend>
+          <div class="pt-row">
+            <div class="pt-fld"><label for="ptCompName">Company name</label><input id="ptCompName" name="compName" type="text" maxlength="80" placeholder="Competitor’s company name"></div>
+            <div class="pt-fld"><label for="ptCompUrl">Their website</label><input id="ptCompUrl" name="compUrl" type="text" inputmode="url" spellcheck="false" autocapitalize="off" maxlength="200" placeholder="www.competitor.co.uk"></div>
+          </div>
+        </fieldset>
+        <label class="pt-consent"><input id="ptConsent" name="consent" type="checkbox"> <span>I’ve read the <a id="ptPrivacy" href="https://34automation.co.uk/privacy/#health-check" target="_blank" rel="noopener">privacy notice</a> and agree to my details being used to deliver this report.</span></label>
+        <p class="pt-err" id="ptErr" role="alert"></p>
+        <div class="pt-acts">
+          <button class="btn gold" type="submit" id="ptPay">Pay £4.99 with Stripe</button>
+          <button class="btn" type="button" id="ptCancel">Cancel</button>
+        </div>
+        <p class="pt-status" id="ptStatus" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+</section>
 
 <!-- ================= CATEGORIES ================= -->
 <section class="cats" aria-labelledby="catsH">
@@ -2421,6 +2499,7 @@ if (REPORT) M.forEach(function(m){
   m.raw = (typeof c.score === 'number' && isFinite(c.score)) ? c.score : null;
   m.flaw = c.flaw || NM.label; m.finding = c.finding || '';
   m.nmWhy = m.raw == null ? (c.nm || c.finding || '') : '';
+  m.lockNote = c.note || (m.id === 'platform-ready' ? m.lockNote : '');   /* v5.2 · e.g. "Scored on resolution only" */
 });
 M.forEach(function(m){ m.score = m.raw; });   /* v4.8 · score = raw, shown with f1() */
 var WHY = {'case-studies': COPY.caseStudiesWhy};
@@ -3357,6 +3436,16 @@ var MONO = 'IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace';
 
 render(); renderFix();
 if (location.hash && /^#m-/.test(location.hash)){ var id = location.hash.slice(3); if (byId[id]) setTimeout(function(){goTo(id);}, 50); }
+/* v5.2 · naming a competitor is part of the paid Performance Test, so the free page shows the offer in its place */
+(function(){
+  document.querySelectorAll('#rivals .rv.slot form, #rivals .rv.slot .acts, #rvPrivacy, #rvNone, .sbs-empty').forEach(function(e){ e.remove(); });
+  var k = document.querySelector('[data-copy="rvKicker"]'), h = $('rvH'), i = document.querySelector('[data-copy="rvIntro"]');
+  if (k) k.textContent = 'In the Performance Test';
+  if (h) h.textContent = 'Compared with a competitor';
+  if (i) i.textContent = REPORT ? 'The Performance Test puts your site side by side with one competitor you name, across the same checks.' : 'The Performance Test puts your site side by side with one competitor you name. Here it’s a fictional firm.';
+  var open = document.querySelector('#rivals .rv.slot.open');
+  if (open) open.outerHTML = '<section class="rv pt-slot" aria-label="Competitor"><p class="rv-k">Competitor · Performance Test</p><p>Name one competitor when you order and we’ll measure them on the same checks, side by side with you.</p><div class="acts"><button type="button" class="btn small gold" data-pt-open>Order the Performance Test · £4.99</button></div></section>';
+})();
 /* v5 · a live report has no hand-drawn page to balloon, so that section steps aside; the footer says how the report was made */
 if (REPORT){
   $('drawing').classList.add('hidden'); var hcDb = $('drawBtn'); if (hcDb) hcDb.classList.add('hidden');
@@ -3391,6 +3480,10 @@ if (REPORT){
   var ROOT = document.getElementById('hcRoot'); if (!ROOT) return;
   var TEMPLATE = ROOT.innerHTML;
   var API = 'https://faaraefaigsngvuuvsyv.supabase.co/functions/v1/health-check';
+  var ORDER_API = 'https://faaraefaigsngvuuvsyv.supabase.co/functions/v1/hc-order';
+  /* Paid orders stay OFF until the privacy notice's Health Check section is live (team rule, ticket 23).
+     The server checks too (hc_config.paid_on), so flipping this alone takes no money. */
+  var PAID_ON = false;
   var PROJECT = 'faaraefaigsngvuuvsyv', SERVER = 'Supabase';
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   var T = {                                                    /* all [v5] */
@@ -3441,7 +3534,49 @@ if (REPORT){
     if (f) f.addEventListener('submit', onSubmit);
     if (inp) inp.addEventListener('input', function(){ ui.value = inp.value; if (ui.err){ ui.err = false; inp.removeAttribute('aria-invalid'); } });
     if (st) st.addEventListener('click', function(e){ if (!e.target.closest('[data-sample]')) return; setRef(null); ui.value = ''; ui.text = T.sample; ui.err = false; ui.link = false; mount(null); });
+    wireOrder(report);
     paint();
+  }
+
+  /* ---------- Performance Test order form ---------- */
+  var O = {                                                    /* all [v5.2] */
+    url: 'Add your website address.', name: 'Add your name.', email: 'Add an email address we can send your report to.',
+    comp: 'For a competitor, add both their company name and their website, or leave both blank.', compUrl: 'That competitor’s website address doesn’t look right.',
+    consent: 'Please tick to agree to the privacy notice.', off: 'We’re not taking Performance Test orders just yet, so nothing has been sent or charged.',
+    making: 'Setting up your secure payment…', go: 'Taking you to Stripe to pay…', link: 'Continue to secure payment', failed: 'Your order couldn’t be started. Nothing has been charged. Try again in a few minutes.'
+  };
+  function wireOrder(report){
+    var card = document.querySelector('.pt-card'), f = $('ptForm'); if (!card || !f) return;
+    var err = $('ptErr'), st = $('ptStatus'), pay = $('ptPay');
+    function open(){ f.hidden = false; card.classList.add('open'); $('ptOpen').hidden = true;
+      var u = $('ptUrl'); if (!u.value) u.value = (report && report.domain) || (okUrl(ui.value) ? bare(ui.value) : '');
+      try { (u.value ? $('ptName') : u).focus(); } catch (e){} }
+    function close(){ f.hidden = true; card.classList.remove('open'); $('ptOpen').hidden = false; err.textContent = ''; st.textContent = ''; }
+    $('ptOpen').addEventListener('click', open);
+    document.querySelectorAll('[data-pt-open]').forEach(function(b){ b.addEventListener('click', function(){ open(); try { card.scrollIntoView({behavior:'smooth', block:'center'}); } catch (e){} }); });
+    $('ptCancel').addEventListener('click', close);
+    f.addEventListener('submit', function(e){
+      e.preventDefault(); st.textContent = '';
+      f.querySelectorAll('[aria-invalid]').forEach(function(x){ x.removeAttribute('aria-invalid'); });
+      var v = function(id){ return ($(id).value || '').trim(); };
+      var bad = function(id, msg){ $(id).setAttribute('aria-invalid', 'true'); err.textContent = msg; try { $(id).focus(); } catch (x){} };
+      var cn = v('ptCompName'), cu = v('ptCompUrl');
+      if (!okUrl(v('ptUrl'))) return bad('ptUrl', O.url);
+      if (!v('ptName')) return bad('ptName', O.name);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v('ptEmail'))) return bad('ptEmail', O.email);
+      if (!!cn !== !!cu) return bad(cn ? 'ptCompUrl' : 'ptCompName', O.comp);
+      if (cu && !okUrl(cu)) return bad('ptCompUrl', O.compUrl);
+      if (!$('ptConsent').checked) return bad('ptConsent', O.consent);
+      err.textContent = '';
+      if (!PAID_ON){ st.textContent = O.off; return; }
+      var order = {url: v('ptUrl'), name: v('ptName'), email: v('ptEmail'), competitor: cn ? {name: cn, url: cu} : null, consent: true};
+      pay.disabled = true; st.textContent = O.making;
+      transport().then(function(tp){ if (!tp || !tp.order) throw {hc: T.noLive}; return tp.order(order); }).then(function(r){
+        if (!r || !r.checkout_url || !/^https:\/\/checkout\.stripe\.com\//.test(r.checkout_url)) throw {hc: (r && r.error) || O.failed};
+        if (!inArtifact){ st.textContent = O.go; location.href = r.checkout_url; return; }
+        st.textContent = ''; var a = document.createElement('a'); a.href = r.checkout_url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = O.link + ' →'; st.appendChild(a); pay.disabled = false;
+      }).catch(function(e2){ pay.disabled = false; st.textContent = (e2 && e2.hc) || O.failed; });
+    });
   }
 
   /* ---------- reaching the engine ---------- */
@@ -3456,7 +3591,8 @@ if (REPORT){
     function body(r){ return r.json().catch(function(){ return {}; }).then(function(b){ b = b || {}; if (!r.ok && !b.error) b.error = T.failed; return b; }); }
     return {
       start: function(url){ return fetch(API, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({url:url, source:'web'})}).then(body); },
-      read:  function(id){ return fetch(API + '?id=' + encodeURIComponent(id), {cache:'no-store'}).then(body); }
+      read:  function(id){ return fetch(API + '?id=' + encodeURIComponent(id), {cache:'no-store'}).then(body); },
+      order: function(o){ return fetch(ORDER_API, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(o)}).then(body); }
     };
   }
   function viaConnector(mcp){
@@ -3485,6 +3621,23 @@ if (REPORT){
             sql("select net.http_post(url := '" + API + "', body := jsonb_build_object('id', id), headers := '{\"Content-Type\":\"application/json\"}'::jsonb) from public.hc_reports where id = '" + id + "' and status = 'queued'").catch(function(){});
           }
           return row;
+        });
+      },
+      /* in a Claude artifact: queue the order in the database; the order function makes the Stripe checkout and stores its link */
+      order: function(o){
+        var q = function(x){ return x == null ? 'null' : "'" + String(x).replace(/'/g, "''") + "'"; };
+        var ins = "insert into public.hc_orders (url, customer_name, customer_email, competitor_name, competitor_url, consent_at, source) values (" + [q(o.url), q(o.name), q(o.email), q(o.competitor && o.competitor.name), q(o.competitor && o.competitor.url)].join(', ') + ", now(), 'artifact') returning 'HCID:' || id::text || ':END' as r";
+        return sql(ins).then(function(txt){
+          var m = /HCID:([0-9a-f-]{36}):END/i.exec(txt); if (!m) return {error: O.failed};
+          var id = m[1], tries = 0;
+          return new Promise(function(ok){ (function again(){ setTimeout(function(){
+            sql("select 'HCURL:' || coalesce(checkout_url, '') || '|' || coalesce(error, '') || ':END' as r from public.hc_orders where id = '" + id + "'").then(function(t){
+              var r = /HCURL:([^|]*)\|([^:]*(?::[^E][^:]*)*):END/.exec(t) || [];
+              if (r[1]) return ok({checkout_url: r[1]});
+              if (r[2]) return ok({error: r[2]});
+              if (++tries > 15) return ok({error: O.failed}); again();
+            }, function(){ if (++tries > 15) return ok({error: O.failed}); again(); });
+          }, 1500); })(); });
         });
       }
     };

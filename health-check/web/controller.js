@@ -14,6 +14,10 @@
   var ROOT = document.getElementById('hcRoot'); if (!ROOT) return;
   var TEMPLATE = ROOT.innerHTML;
   var API = 'https://faaraefaigsngvuuvsyv.supabase.co/functions/v1/health-check';
+  var ORDER_API = 'https://faaraefaigsngvuuvsyv.supabase.co/functions/v1/hc-order';
+  /* Paid orders stay OFF until the privacy notice's Health Check section is live (team rule, ticket 23).
+     The server checks too (hc_config.paid_on), so flipping this alone takes no money. */
+  var PAID_ON = false;
   var PROJECT = 'faaraefaigsngvuuvsyv', SERVER = 'Supabase';
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   var T = {                                                    /* all [v5] */
@@ -64,7 +68,49 @@
     if (f) f.addEventListener('submit', onSubmit);
     if (inp) inp.addEventListener('input', function(){ ui.value = inp.value; if (ui.err){ ui.err = false; inp.removeAttribute('aria-invalid'); } });
     if (st) st.addEventListener('click', function(e){ if (!e.target.closest('[data-sample]')) return; setRef(null); ui.value = ''; ui.text = T.sample; ui.err = false; ui.link = false; mount(null); });
+    wireOrder(report);
     paint();
+  }
+
+  /* ---------- Performance Test order form ---------- */
+  var O = {                                                    /* all [v5.2] */
+    url: 'Add your website address.', name: 'Add your name.', email: 'Add an email address we can send your report to.',
+    comp: 'For a competitor, add both their company name and their website, or leave both blank.', compUrl: 'That competitor’s website address doesn’t look right.',
+    consent: 'Please tick to agree to the privacy notice.', off: 'We’re not taking Performance Test orders just yet, so nothing has been sent or charged.',
+    making: 'Setting up your secure payment…', go: 'Taking you to Stripe to pay…', link: 'Continue to secure payment', failed: 'Your order couldn’t be started. Nothing has been charged. Try again in a few minutes.'
+  };
+  function wireOrder(report){
+    var card = document.querySelector('.pt-card'), f = $('ptForm'); if (!card || !f) return;
+    var err = $('ptErr'), st = $('ptStatus'), pay = $('ptPay');
+    function open(){ f.hidden = false; card.classList.add('open'); $('ptOpen').hidden = true;
+      var u = $('ptUrl'); if (!u.value) u.value = (report && report.domain) || (okUrl(ui.value) ? bare(ui.value) : '');
+      try { (u.value ? $('ptName') : u).focus(); } catch (e){} }
+    function close(){ f.hidden = true; card.classList.remove('open'); $('ptOpen').hidden = false; err.textContent = ''; st.textContent = ''; }
+    $('ptOpen').addEventListener('click', open);
+    document.querySelectorAll('[data-pt-open]').forEach(function(b){ b.addEventListener('click', function(){ open(); try { card.scrollIntoView({behavior:'smooth', block:'center'}); } catch (e){} }); });
+    $('ptCancel').addEventListener('click', close);
+    f.addEventListener('submit', function(e){
+      e.preventDefault(); st.textContent = '';
+      f.querySelectorAll('[aria-invalid]').forEach(function(x){ x.removeAttribute('aria-invalid'); });
+      var v = function(id){ return ($(id).value || '').trim(); };
+      var bad = function(id, msg){ $(id).setAttribute('aria-invalid', 'true'); err.textContent = msg; try { $(id).focus(); } catch (x){} };
+      var cn = v('ptCompName'), cu = v('ptCompUrl');
+      if (!okUrl(v('ptUrl'))) return bad('ptUrl', O.url);
+      if (!v('ptName')) return bad('ptName', O.name);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v('ptEmail'))) return bad('ptEmail', O.email);
+      if (!!cn !== !!cu) return bad(cn ? 'ptCompUrl' : 'ptCompName', O.comp);
+      if (cu && !okUrl(cu)) return bad('ptCompUrl', O.compUrl);
+      if (!$('ptConsent').checked) return bad('ptConsent', O.consent);
+      err.textContent = '';
+      if (!PAID_ON){ st.textContent = O.off; return; }
+      var order = {url: v('ptUrl'), name: v('ptName'), email: v('ptEmail'), competitor: cn ? {name: cn, url: cu} : null, consent: true};
+      pay.disabled = true; st.textContent = O.making;
+      transport().then(function(tp){ if (!tp || !tp.order) throw {hc: T.noLive}; return tp.order(order); }).then(function(r){
+        if (!r || !r.checkout_url || !/^https:\/\/checkout\.stripe\.com\//.test(r.checkout_url)) throw {hc: (r && r.error) || O.failed};
+        if (!inArtifact){ st.textContent = O.go; location.href = r.checkout_url; return; }
+        st.textContent = ''; var a = document.createElement('a'); a.href = r.checkout_url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = O.link + ' →'; st.appendChild(a); pay.disabled = false;
+      }).catch(function(e2){ pay.disabled = false; st.textContent = (e2 && e2.hc) || O.failed; });
+    });
   }
 
   /* ---------- reaching the engine ---------- */
@@ -79,7 +125,8 @@
     function body(r){ return r.json().catch(function(){ return {}; }).then(function(b){ b = b || {}; if (!r.ok && !b.error) b.error = T.failed; return b; }); }
     return {
       start: function(url){ return fetch(API, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({url:url, source:'web'})}).then(body); },
-      read:  function(id){ return fetch(API + '?id=' + encodeURIComponent(id), {cache:'no-store'}).then(body); }
+      read:  function(id){ return fetch(API + '?id=' + encodeURIComponent(id), {cache:'no-store'}).then(body); },
+      order: function(o){ return fetch(ORDER_API, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(o)}).then(body); }
     };
   }
   function viaConnector(mcp){
@@ -108,6 +155,23 @@
             sql("select net.http_post(url := '" + API + "', body := jsonb_build_object('id', id), headers := '{\"Content-Type\":\"application/json\"}'::jsonb) from public.hc_reports where id = '" + id + "' and status = 'queued'").catch(function(){});
           }
           return row;
+        });
+      },
+      /* in a Claude artifact: queue the order in the database; the order function makes the Stripe checkout and stores its link */
+      order: function(o){
+        var q = function(x){ return x == null ? 'null' : "'" + String(x).replace(/'/g, "''") + "'"; };
+        var ins = "insert into public.hc_orders (url, customer_name, customer_email, competitor_name, competitor_url, consent_at, source) values (" + [q(o.url), q(o.name), q(o.email), q(o.competitor && o.competitor.name), q(o.competitor && o.competitor.url)].join(', ') + ", now(), 'artifact') returning 'HCID:' || id::text || ':END' as r";
+        return sql(ins).then(function(txt){
+          var m = /HCID:([0-9a-f-]{36}):END/i.exec(txt); if (!m) return {error: O.failed};
+          var id = m[1], tries = 0;
+          return new Promise(function(ok){ (function again(){ setTimeout(function(){
+            sql("select 'HCURL:' || coalesce(checkout_url, '') || '|' || coalesce(error, '') || ':END' as r from public.hc_orders where id = '" + id + "'").then(function(t){
+              var r = /HCURL:([^|]*)\|([^:]*(?::[^E][^:]*)*):END/.exec(t) || [];
+              if (r[1]) return ok({checkout_url: r[1]});
+              if (r[2]) return ok({error: r[2]});
+              if (++tries > 15) return ok({error: O.failed}); again();
+            }, function(){ if (++tries > 15) return ok({error: O.failed}); again(); });
+          }, 1500); })(); });
         });
       }
     };
