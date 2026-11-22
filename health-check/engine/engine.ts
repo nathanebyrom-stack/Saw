@@ -7,7 +7,7 @@
 // NOT been reviewed by Ruby or Leo. Every threshold lives in RUBRIC so it can be tuned
 // in one place.
 
-export const ENGINE_VERSION = "1.0.0";
+export const ENGINE_VERSION = "1.1.0";
 
 export interface Options {
   allowLocal?: boolean;        // tests only: lets the engine fetch localhost
@@ -38,6 +38,7 @@ export interface Report {
   pages: { url: string; status: number; title: string }[];
   screenshot?: string;
   notes: string[];
+  sector?: { key: string; label: string; scores: Record<string, number> };
 }
 
 /* ------------------------------------------------------------------ rubric */
@@ -204,7 +205,8 @@ function makePage(f: Fetched, kind: string): Page {
 /* --------------------------------------------------------------- patterns */
 const P = {
   contact: /contact|quote|enquir|inquir|get[-\s]?in[-\s]?touch|rfq/i,
-  cases: /case[-\s]?stud|projects?\b|portfolio|our[-\s]?work|success[-\s]?stor/i,
+  cases: /case[-\s]?stud|projects?\b|portfolio|our[-\s]?work|success[-\s]?stor|^\s*(selected |recent |see (the |our )?)?work\s*$|\/work\/?$/i,
+  caseSection: /^(work|our-?work|selected-?work|recent-?work|case-?stud(y|ies)|projects?|portfolio|results|clients-?work)$/i,
   testimonials: /testimonial|reviews?\b|what our (clients|customers) say/i,
   spec: /capabilit|specification|\bspecs?\b|tolerance|materials|services|what[-\s]?we[-\s]?do|precision|machining/i,
   machines: /machine|plant[-\s]?list|equipment|facilit|capacity|our[-\s]?kit|workshop/i,
@@ -213,7 +215,7 @@ const P = {
   generic: /^(welcome|welcome to .{0,40}|home|home ?page|index|untitled|hello|welcome to our (web)?site!?)$/i,
   phone: /(\+44\s?\(?0?\)?\s?\d{2,4}[\s-]?\d{3,4}[\s-]?\d{3,4}|\(?0\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4})/,
   reply: /(within|in)\s+(\d+|one|two|three|24|48)\s*(working\s+|business\s+)?(hours?|hrs?|days?)|same[-\s]day (reply|response|quote)|next[-\s]working[-\s]day|respond(s|ing)? (to all enquiries )?within|get back to you within|reply within|quotes? (back )?(within|in) /i,
-  tolerance: /±\s?\d|\+\s?\/\s?-\s?\d|\d\s?(µm|μm|microns?)\b|\b\d+(\.\d+)?\s?thou\b|tolerances? (of|to|down to|as tight as|within)\s/i,
+  tolerance: /±\s?\d|\+\s?\/\s?-\s?\d|\d\s?(µm|μm|microns?)\b|\b\d+(\.\d+)?\s?thou\b|tolerances? (of|to|down to|as tight as|within) [±+]?\s?\d/i,
   material: /\b(stainless|alumin(i)?um|titanium|brass|copper|mild steel|carbon steel|tool steel|inconel|hastelloy|duplex|bronze|316L?|304L?|6082|7075|EN ?\d{1,2}[A-Z]?|peek|acetal|delrin|nylon|ptfe|polycarbonate|monel|magnesium)\b/i,
   machineBrand: /\b(mazak|dmg ?mori|mori seiki|haas|doosan|hurco|okuma|matsuura|citizen|star micronics|trumpf|amada|bystronic|mitutoyo|zeiss|fanuc|hermle|makino|xyz machine|colchester|bridgeport|nakamura|miyano|index traub|kitamura|leadwell|dugard|hardinge|studer|jones ?& ?shipman|agie|sodick|charmilles|lvd|durma|safan|faro|hexagon|renishaw|aberlink|esab|kemppi|fronius|engel|arburg|krauss ?maffei|sumitomo|demag|battenfeld|brother speedio|biglia|spinner|chiron|grob|heller|dn solutions|tornos|gildemeister|deckel|maho|cincinnati|kasto|flow waterjet|omax)\b/gi,
   standard: /\b(ISO\s?-?\s?9001|ISO\s?-?\s?14001|ISO\s?-?\s?45001|ISO\s?-?\s?13485|ISO\s?-?\s?27001|ISO\s?-?\s?3834|AS\s?-?\s?9100|AS\s?-?\s?9120|IATF\s?-?\s?16949|BS\s?EN\s?1090|EN\s?1090|NADCAP|Cyber Essentials|SafeContractor|Constructionline|CHAS|JOSCAR|SC21|Fit\s?4\s?Nuclear|UKAS|Investors in People|Achilles|RISQS|Gas Safe|NICEIC|TrustMark)\b/i,
@@ -237,6 +239,29 @@ const BOOKING: [string, RegExp][] = [
   ["Microsoft Bookings", /outlook\.office(365)?\.com\/(owa\/calendar|book)/i], ["TidyCal", /tidycal\.com/i], ["SavvyCal", /savvycal\.com/i], ["Bookwhen", /bookwhen\.com/i],
   ["Zoho Bookings", /zohobookings|bookings\.zoho/i], ["Fresha", /fresha\.com/i], ["Booksy", /booksy\.com/i], ["Google appointments", /calendar\.google\.com\/calendar\/appointments|calendar\.app\.google/i],
 ];
+
+/* ---------------------------------------------------------------- sectors */
+// What the site is for, read from its words. The page title, description and main headings count three times.
+const SECTORS: { key: string; label: string; re: RegExp }[] = [
+  { key: "manufacturing", label: "a manufacturer or engineering firm", re: /\b(cnc|machin(ing|ed|ist)|turning|milling|grinding|fabricat\w*|precision engineer\w*|toolmak\w*|sheet metal|welding|castings?|forgings?|injection mould\w*|presswork|turned parts|laser cutting|powder coat\w*|we manufacture|manufactur(er|ers) of|sub-?contract (machining|manufacturing)|plant list|as ?9100)\b/gi },
+  { key: "agency", label: "a digital or marketing agency", re: /\b(web ?design|websites|website (design|builds?|rebuilds?|overhauls?)|web development|seo|digital marketing|marketing agency|branding|brand identity|lead magnets?|landing pages?|social media|ppc|content marketing|agency|quote systems?|ai (tools|agents|workflows))\b/gi },
+  { key: "charity", label: "a charity or community organisation", re: /\b(registered charity|charity (no|number)|charit(y|able)|donat(e|ion|ions)|volunteer\w*|fundrais\w*|community (group|interest|organisation|project)|non-profit|not-for-profit|programmes?|wellbeing|support group)\b/gi },
+  { key: "trades", label: "a trades or home-services business", re: /\b(plumb\w*|electricians?|roofing|roofers?|boilers?|heating engineers?|gas safe|builders?|joinery|carpent\w*|plaster\w*|decorators?|landscap\w*|kitchen fitt\w*|bathroom fitt\w*|loft conversions?|niceic|emergency call-?outs?)\b/gi },
+  { key: "retail", label: "a shop or online store", re: /\b(add to (basket|cart|bag)|basket|checkout|free delivery|shop now|in stock|online shop|buy now)\b/gi },
+  { key: "professional", label: "a professional services firm", re: /\b(solicitors?|law firm|legal services|accountan\w*|bookkeep\w*|tax returns?|financial advis\w*|consultan(cy|ts?)|recruitment|estate agents?|surveyors?|architects?|insurance brok\w*)\b/gi },
+  { key: "hospitality", label: "a hospitality or leisure business", re: /\b(restaurant|book a table|caf[eé]|pub|hotel|bed and breakfast|wedding venue|events venue|takeaway|brunch)\b/gi },
+  { key: "health", label: "a health, beauty or wellbeing business", re: /\b(clinic|dentists?|dental|physio\w*|chiropract\w*|salon|beauty|aesthetics?|treatments?|therap(y|ist)|massage|osteopath\w*|opticians?|veterinary)\b/gi },
+];
+function sectorOf(hero: string, body: string): { key: string; label: string; scores: Record<string, number> } {
+  const scores: Record<string, number> = {};
+  for (const x of SECTORS) scores[x.key] = 3 * (hero.match(x.re) || []).length + Math.min(20, (body.match(x.re) || []).length);
+  const ranked = [...SECTORS].sort((a, b) => scores[b.key] - scores[a.key]);
+  const top = ranked[0], second = ranked[1];
+  if (scores[top.key] < 4 || scores[top.key] < 1.5 * scores[second.key]) return { key: "unknown", label: "", scores };
+  return { key: top.key, label: top.label, scores };
+}
+const WHO = /\bfor\s+((?:the\s+)?(?:[\w&'’-]+\s+){0,3}?(?:firms|companies|businesses|manufacturers|engineers|homeowners|landlords|families|parents|children|young people|schools|charities|retailers|brands|startups|contractors|trade|traders|industry|sector|aerospace|automotive|medical|defence|nuclear|rail|marine|construction|food|pharma\w*|clients|customers|people|teams|owners))\b/i;
+const WHERE = /\b(uk|united kingdom|britain|england|scotland|wales|northern ireland|london|manchester|birmingham|leeds|sheffield|bristol|liverpool|newcastle|nottingham|leicester|glasgow|edinburgh|cardiff|belfast|nationwide|[a-z]+shire|yorkshire|midlands)\b/i;
 
 /* --------------------------------------------------------------- platform */
 interface Platform { name: string; version?: string; status: "supported" | "behind" | "unsupported" | "legacy" | "unknown"; note: string }
@@ -292,7 +317,27 @@ function detectPlatform(html: string, headers: Headers | null): Platform {
   if (/gatsby/i.test(gen) || /___gatsby/i.test(html)) return { name: "Gatsby", status: "supported", note: "A custom site built on Gatsby." };
   if (/astro/i.test(gen)) return { name: "Astro", status: "supported", note: "A custom site built on Astro, a current framework." };
   if (gen) return { name: gen.slice(0, 60), status: "unknown", note: `Built with ${gen.slice(0, 60)}.` };
-  return { name: "", status: "unknown", note: "" };
+  // no CMS or site builder found: judge the page code itself and where it's hosted
+  const host = hostOf(headers);
+  const on = host ? ` on ${host}` : "";
+  const html5 = /^\s*(<!--[\s\S]*?-->\s*)*<!doctype html\s*>/i.test(html);
+  const oldDoctype = /<!doctype html public "-\/\/w3c\/\/dtd (x?html 1|html 4|html 3)/i.test(html);
+  const oldMarkup = (html.match(/<font\b|<center\b|<frameset\b|\bbgcolor=|<marquee\b/gi) || []).length + ((html.match(/<table\b/gi) || []).length >= 4 ? 2 : 0);
+  const viewport = /<meta[^>]+name=["']?viewport/i.test(html);
+  if (oldDoctype || oldMarkup >= 2 || (!html5 && !viewport)) return { name: "Hand-built site", status: "legacy", note: `An older hand-built site${on}: the page code is dated and isn’t set up for phones.` };
+  if (html5 && viewport) return { name: "Custom-built site", status: "supported", note: `A custom-built site${on} with current page code. Whoever looks after the code can add chat, WhatsApp, booking or an AI assistant directly.` };
+  return { name: "Custom-built site", status: "behind", note: `A hand-built site${on}. Chat or booking can be added, but how easily depends on who looks after the code.` };
+}
+function hostOf(h: Headers | null): string {
+  if (!h) return "";
+  const server = (h.get("server") || "").toLowerCase();
+  if (h.get("cf-ray") || server === "cloudflare") return "Cloudflare";
+  if (h.get("x-vercel-id") || server === "vercel") return "Vercel";
+  if (h.get("x-nf-request-id") || server.startsWith("netlify")) return "Netlify";
+  if (server === "github.com") return "GitHub Pages";
+  if (h.get("x-amz-cf-id")) return "Amazon CloudFront";
+  if (h.get("x-firebase-hosting") || /firebase/.test(server)) return "Firebase";
+  return "";
 }
 
 /* ------------------------------------------------------------------- PSI */
@@ -410,8 +455,28 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
   else checks["headline"] = { score: RUBRIC.headline.recorded, flaw: `Headline: “${h1.slice(0, 90)}”`, finding: "There’s a real headline on the home page. How well it sells isn’t judged automatically; we look at that with you in your Performance Test.", basis: "rule", evidence: { h1 } };
   values.h1 = h1 ? { v: h1.slice(0, 140), at } : { v: null, at, nm: "No H1 found" };
 
-  /* 3 offer structure */
-  checks["offer-structure"] = nm(NEEDS_EYE);
+  /* 3 offer structure: what the site is for, who it serves and how focused the offer is, by fixed rules */
+  const descText = (openTags(home.text, "meta").find((m) => (m.name || "").toLowerCase() === "description")?.content || "").trim();
+  const h2s = blocks(cleanHome, "h2").map((b) => textOf(b.inner)).filter(Boolean).slice(0, 3);
+  const hero = [hp.title, descText, h1, ...h2s].join(" · ");
+  const sector = sectorOf(hero, allText);
+  const whoM = WHO.exec(hero); const who = whoM ? whoM[1].replace(/\s+/g, " ").trim() : "";
+  const what = sector.key !== "unknown" && sector.scores[sector.key] >= 3 && (SECTORS.find((x) => x.key === sector.key)!.re.test(hero));
+  SECTORS.forEach((x) => { x.re.lastIndex = 0; });
+  const where = WHERE.test(hero);
+  const svcSec = /<(section|div)\b[^>]*\bid=["'][^"']*(services|what-we-do|capabilit|offer)[^"']*["'][^>]*>([\s\S]{0,40000}?)(?=<section\b|<footer\b)/i.exec(home.text);
+  const svcCount = svcSec ? (svcSec[3].match(/<h[3-4]\b/gi) || []).length : 0;
+  const listCount = Math.max(svcCount, ...pages.filter((pg) => pg.kind === "spec").map((pg) => (pg.html.match(/<li\b/gi) || []).length > 40 ? 0 : (strip(pg.html).match(/<h[3-4]\b/gi) || []).length));
+  const generic = !h1 || P.generic.test(h1);
+  let cs = 2.5 + (what ? 2.5 : 0) + (who ? 2 : 0) + (where ? 0.5 : 0) + (listCount >= 2 && listCount <= 8 ? 0.5 : 0) - (listCount > 12 ? 1 : 0) - (generic ? 1 : 0);
+  cs = Math.max(1, Math.min(8, cs));   // rules can't award top marks: that needs a person's or an AI's read
+  const reads = sector.key !== "unknown" ? `Your site reads as ${sector.label}${who ? `, for ${who}` : ""}.` : "We couldn’t tell from your headline, title and description what kind of business this is.";
+  const flawO = what && who ? "Says what you offer and who it’s for" : what ? "Says what you offer, not who it’s for" : who ? "Says who it’s for, not clearly what you offer" : "Doesn’t say what you offer or who it’s for";
+  checks["offer-structure"] = {
+    score: cs, flaw: flawO + (listCount > 12 ? `; ${listCount} services listed` : ""),
+    finding: `${reads} ${listCount > 12 ? `There are ${listCount} services or processes listed, which is a lot for a buyer to sort through. ` : ""}Judged by fixed rules from your page title, description and headings, not by a person.`,
+    basis: "rule", evidence: { sector: sector.key, who: who || null, where, services: listCount },
+  };
 
   /* 4 spec page */
   const specPage = pages.find((pg) => P.tolerance.test(pg.text) && P.material.test(pg.text));
@@ -507,14 +572,31 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
   const casePage = pages.find((pg) => pg.kind === "cases" && pg.text.split(/\s+/).length >= 80);
   const caseKids = casePage ? new Set(casePage.links.filter((l) => sameSite(l.href, base) && noHash(l.href).replace(/\/$/, "").startsWith(noHash(casePage.url).replace(/\/$/, "") + "/")).map((l) => noHash(l.href))).size : 0;
   const testimonials = P.testimonials.test(allText) || pages.some((pg) => pg.kind === "testimonials");
-  checks["case-studies"] = casePage
+  // one-page sites: a section on the home page, found by its id or by a menu link that jumps to it
+  const secIds = new Set<string>();
+  for (const a of openTags(home.text, "section").concat(openTags(home.text, "div"), openTags(home.text, "article"))) if (a.id && P.caseSection.test(a.id)) secIds.add(a.id);
+  for (const l of hp.links) if (/^#[\w-]+$/.test(l.raw) && P.cases.test(l.text)) secIds.add(l.raw.slice(1));
+  let workSec: { id: string; entries: number; words: number } | null = null;
+  for (const id of secIds) {
+    const m = new RegExp("<(section|div|article|main)\\b[^>]*\\bid=[\"']" + id.replace(/[^\w-]/g, "") + "[\"'][^>]*>", "i").exec(home.text);
+    if (!m) continue;
+    let body = home.text.slice(m.index + m[0].length, m.index + m[0].length + 60000);
+    const end = body.search(/<section\b|<footer\b/i); if (end > 0) body = body.slice(0, end);
+    const entries = Math.max((body.match(/<h[3-4]\b/gi) || []).length, (body.match(/<article\b/gi) || []).length, (body.match(/<figure\b/gi) || []).length);
+    const words = textOf(body).split(/\s+/).filter(Boolean).length;
+    if (words >= 25 && (!workSec || entries > workSec.entries)) workSec = { id, entries, words };
+  }
+  if (workSec && (!casePage || (caseKids < 3 && workSec.entries >= 3))) checks["case-studies"] = workSec.entries >= 3
+    ? { score: RUBRIC.cases.pageWithSeveral, flaw: `Work section with ${workSec.entries} examples`, finding: `The home page has a work section with ${workSec.entries} examples of past jobs. How good they are isn’t judged.`, basis: "measured", evidence: { section: "#" + workSec.id, entries: workSec.entries } }
+    : { score: RUBRIC.cases.page, flaw: "Work section on the home page", finding: "The home page has a section showing past work. We check that it’s there, not how good it is.", basis: "measured", evidence: { section: "#" + workSec.id, entries: workSec.entries } };
+  else checks["case-studies"] = casePage
     ? caseKids >= 3
       ? { score: RUBRIC.cases.pageWithSeveral, flaw: `${caseKids} case studies or projects found`, finding: "There’s a case studies or projects section with several entries. How good they are isn’t judged.", basis: "measured", evidence: { page: casePage.url } }
       : { score: RUBRIC.cases.page, flaw: "Case studies or projects page found", finding: "There’s a case studies or projects page. We check that it exists, not how good it is.", basis: "measured", evidence: { page: casePage.url } }
     : testimonials
       ? { score: RUBRIC.cases.testimonialsOnly, flaw: "Testimonials, no case studies", finding: "There are testimonials or reviews, but no written examples of past work.", basis: "measured" }
       : { score: RUBRIC.cases.none, flaw: "No case studies", finding: "There are no examples of past work, so the capability claims have nothing behind them.", basis: "measured" };
-  values.cases = { v: !!casePage, at };
+  values.cases = { v: !!casePage || !!workSec, at };
 
   /* 13 certificates */
   const std = P.standard.exec(allText);
@@ -572,8 +654,10 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
     if (stale) s -= RUBRIC.platform.staleBy;
     if (ok && thirdParty === 0) s -= RUBRIC.platform.noOutsideScriptsBy;
     if (ok && fresh && thirdParty > 0) s += RUBRIC.platform.freshBonus;
-    const bits = [plat.note, thirdParty ? `${thirdParty} outside script${thirdParty === 1 ? "" : "s"} already load${thirdParty === 1 ? "s" : ""}.` : "No outside scripts load.", fresh ? "It’s been updated in the last 12 months." : stale ? `It looks untouched since ${copyYear ?? (lastmod || "").slice(0, 4)}.` : "When it was last updated couldn’t be told."];
-    checks["platform-ready"] = { score: r1(clamp(s)), flaw: plat.status === "supported" ? `${plat.name}${plat.version ? " " + plat.version : ""}, a supported platform` : plat.note.replace(/\.$/, ""), finding: bits.join(" "), basis: "measured", evidence: { platform: plat.name, version: plat.version || null, thirdParty, copyYear, lastmod } };
+    const csp = home.headers?.get("content-security-policy") || "";
+    const cspNote = /script-src/i.test(csp) ? "Its security settings list which scripts may run, so a chat or booking widget has to be added to that list too." : "";
+    const bits = [plat.note, cspNote, thirdParty ? `${thirdParty} outside script${thirdParty === 1 ? "" : "s"} already load${thirdParty === 1 ? "s" : ""}.` : "No outside scripts load.", fresh ? "It’s been updated in the last 12 months." : stale ? `It looks untouched since ${copyYear ?? (lastmod || "").slice(0, 4)}.` : "When it was last updated couldn’t be told."];
+    checks["platform-ready"] = { score: r1(clamp(s)), flaw: plat.name === "Custom-built site" && ok ? "Custom-built site, ready to add chat or AI tools" : plat.status === "supported" ? `${plat.name}${plat.version ? " " + plat.version : ""}, a supported platform` : plat.note.replace(/\.$/, ""), finding: bits.filter(Boolean).join(" "), basis: "measured", evidence: { platform: plat.name, version: plat.version || null, thirdParty, copyYear, lastmod } };
   }
 
   /* 18 chat and booking */
@@ -587,16 +671,18 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
     ? { score: RUBRIC.tools.none, flaw: "No chat, WhatsApp or booking found", finding: "No chat, WhatsApp or booking was found in the page code. Buyers get a phone number or an email link, and that’s it.", basis: "measured" }
     : { score: kinds > 1 ? RUBRIC.tools.several : RUBRIC.tools.one, flaw: `${found.slice(0, 3).join(", ")} found`, finding: `${found.join(", ")} found in the page code. We don’t send anything to test it.`, basis: "measured", evidence: { found } };
 
+  // checks 4 and 5 are written for manufacturers: leave them out for a site that clearly isn't one
+  if (sector.key !== "unknown" && sector.key !== "manufacturing") for (const k of ["spec-page", "machine-list"]) checks[k] = nm(`This check is written for manufacturers. Your site reads as ${sector.label}, so it’s left out of your score.`);
   for (const k of Object.keys(checks)) { const c = checks[k]; if (c.score != null) c.score = r1(clamp(c.score)); }
   if (hp.text.length < 250 && openTags(home.text, "script").length > 2) notes.push("This site builds its pages with JavaScript, so the automatic checks may have missed some of what visitors see.");
   if (!p) notes.push("Mobile load time (LCP) wasn’t measured: it needs a Google PageSpeed Insights key.");
-  notes.push("Checks 4 and 5 (spec page, machine list) are written for manufacturers.");
+  if (sector.key === "unknown") notes.push("We couldn’t tell what kind of business this is, so the two manufacturer checks (spec page, machine list) were still applied.");
 
   return {
     schema: "hc-report/1", engine: ENGINE_VERSION,
     url: home.url, domain: new URL(home.url).hostname.replace(/^www\./, ""), name: guessName.slice(0, 80),
     tested: now.toISOString(), sources: { psi: !!p, pages: pages.length },
     checks, values, pages: pages.map((pg) => ({ url: pg.url, status: pg.status, title: pg.title.slice(0, 120) })),
-    screenshot: p?.screenshot, notes,
+    screenshot: p?.screenshot, notes, sector,
   };
 }

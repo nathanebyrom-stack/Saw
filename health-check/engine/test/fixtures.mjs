@@ -31,15 +31,29 @@ const sharp = {
   '/wp-content/themes/c/style.css': `body{margin:0}@media (max-width:700px){nav{display:block}}`,
   '/sitemap.xml': `<urlset><url><loc>http://sharp.test/</loc><lastmod>2026-10-02</lastmod></url></urlset>`,
 };
+// a one-page site like 34automation.co.uk: work shown as a section, custom code on modern hosting
+const onepage = {
+  '/': `<!doctype html><html lang="en-GB"><head><title>Northgate Digital | Websites for UK engineering firms</title><meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="Websites and quote systems for engineering firms."><link rel="stylesheet" href="/css/site.css"><script src="/js/site.js" defer></script></head><body>
+    <nav><a href="#services">Services</a><a href="#work">Work</a><a href="#contact">Contact</a></nav>
+    <section id="hero"><h1>Websites that win orders for engineering firms</h1></section>
+    <section id="services"><h2>What we build</h2><p>We speak drawing, tolerance and finish, and build sites in stainless-steel-solid code.</p></section>
+    <section id="work"><h2>Recent work</h2><p>Three firms we rebuilt this year, from the first drawing to live orders, with the results each one saw.</p>
+      <article><h3>Fluid Pumps Ltd</h3><p>New site and quote form.</p></article><article><h3>AOE Machining</h3><p>Rebuild and SEO.</p></article><article><h3>Moss Fabrication</h3><p>Landing pages.</p></article></section>
+    <section id="contact"><h2>Talk to us</h2><form><input type="text" name="n"><input type="email" name="e"><textarea name="m"></textarea></form></section>
+    <footer>© 2026 Northgate Digital</footer></body></html>`,
+  '/css/site.css': `@media (max-width:700px){nav{display:block}}`,
+  '/js/site.js': `console.log(1)`,
+};
 export function serve(site, port, delay = 0) {
-  const pages = site === 'tired' ? tired : sharp;
+  const pages = site === 'tired' ? tired : site === 'onepage' ? onepage : sharp;
   return new Promise((ok) => {
     const s = http.createServer((req, res) => {
       const path = req.url.split('?')[0];
       setTimeout(() => {
         if (path.startsWith('/img/')) { const b = site === 'tired' ? big : Buffer.alloc(60_000, 1); res.writeHead(200, { 'content-type': 'image/jpeg', 'content-length': b.length }); return res.end(b); }
         if (pages[path] == null) { res.writeHead(404, { 'content-type': 'text/html' }); return res.end('<html><body>Not found</body></html>'); }
-        res.writeHead(200, { 'content-type': path.endsWith('.css') ? 'text/css' : path.endsWith('.xml') ? 'application/xml' : 'text/html; charset=utf-8' });
+        res.writeHead(200, { 'content-type': path.endsWith('.css') ? 'text/css' : path.endsWith('.xml') ? 'application/xml' : 'text/html; charset=utf-8', ...(site === 'onepage' ? { server: 'cloudflare', 'cf-ray': 'x', 'content-security-policy': "default-src 'self'; script-src 'self'" } : {}) });
         res.end(pages[path]);
       }, delay);
     }).listen(port, '127.0.0.1', () => ok(s));
