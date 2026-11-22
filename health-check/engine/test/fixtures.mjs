@@ -43,7 +43,7 @@ const onepage = {
   '/': `<!doctype html><html lang="en-GB"><head><title>Northgate Digital | Websites for UK engineering firms</title><meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="description" content="Websites and quote systems for engineering firms."><link rel="stylesheet" href="/css/site.css"><script src="/js/site.js" defer></script></head><body>
     <nav><a href="#services">Services</a><a href="#work">Work</a><a href="#contact">Contact</a></nav>
-    <section id="hero"><h1>Websites that win orders for engineering firms</h1><video autoplay muted poster="/img/poster-1920.webp"></video></section>
+    <section id="hero"><h1>Websites that win orders for engineering firms</h1><video autoplay muted poster="/img/poster-1440.webp"><source src="/video/hero.mp4" type="video/mp4"></video></section>
     <section id="services"><h2>What we build</h2><p>We speak drawing, tolerance and finish, and build sites in stainless-steel-solid code.</p></section>
     <section id="work"><h2>Recent work</h2><p>Three firms we rebuilt this year, from the first drawing to live orders, with the results each one saw.</p>
       <article><h3>Fluid Pumps Ltd</h3><p>New site and quote form.</p></article><article><h3>AOE Machining</h3><p>Rebuild and SEO.</p></article><article><h3>Moss Fabrication</h3><p>Landing pages.</p></article></section>
@@ -58,6 +58,7 @@ export function serve(site, port, delay = 0) {
     const s = http.createServer((req, res) => {
       const path = req.url.split('?')[0];
       setTimeout(() => {
+        if (path === '/video/hero.mp4') { const v = Buffer.alloc(4000, 0); v.writeUInt32BE(92, 100); v.write('tkhd', 104); v.writeUInt32BE(1920 << 16 >>> 0, 100 + 84); v.writeUInt32BE(1080 << 16 >>> 0, 100 + 88); res.writeHead(200, { 'content-type': 'video/mp4' }); return res.end(v); }
         if (path.startsWith('/img/')) { const b = img(site, path); res.writeHead(200, { 'content-type': 'image/' + (b[0] === 0xff ? 'jpeg' : 'webp'), 'content-length': b.length }); return res.end(b); }
         if (pages[path] == null) { res.writeHead(404, { 'content-type': 'text/html' }); return res.end('<html><body>Not found</body></html>'); }
         res.writeHead(200, { 'content-type': path.endsWith('.css') ? 'text/css' : path.endsWith('.xml') ? 'application/xml' : 'text/html; charset=utf-8', ...(site === 'onepage' ? { server: 'cloudflare', 'cf-ray': 'x', 'content-security-policy': "default-src 'self'; script-src 'self'" } : {}) });

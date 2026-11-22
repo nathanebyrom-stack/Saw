@@ -7,7 +7,7 @@
 // NOT been reviewed by Ruby or Leo. Every threshold lives in RUBRIC so it can be tuned
 // in one place.
 
-export const ENGINE_VERSION = "1.2.0";
+export const ENGINE_VERSION = "1.2.1";
 
 export interface Options {
   allowLocal?: boolean;        // tests only: lets the engine fetch localhost
@@ -277,6 +277,27 @@ export function imageSize(b: Uint8Array): { w: number; h: number; type: string }
   }
   return null;
 }
+// Frame size of an MP4/MOV video from its track header (only when that header is near the start of the file).
+export function videoSize(b: Uint8Array): { w: number; h: number; type: string } | null {
+  const u32 = (i: number) => ((b[i] << 24) >>> 0) + (b[i + 1] << 16) + (b[i + 2] << 8) + b[i + 3];
+  let best: { w: number; h: number } | null = null;
+  for (let i = 4; i + 100 < b.length; i++) {
+    if (b[i] !== 0x74 || b[i + 1] !== 0x6b || b[i + 2] !== 0x68 || b[i + 3] !== 0x64) continue;   // "tkhd"
+    const start = i - 4, off = b[i + 4] === 1 ? 96 : 84;
+    const w = u32(start + off) >>> 16, h = u32(start + off + 4) >>> 16;
+    if (w > 0 && h > 0 && w < 20000 && (!best || w * h > best.w * best.h)) best = { w, h };
+  }
+  return best ? { ...best, type: "video" } : null;
+}
+// Site builders serve a small or blurred placeholder first and swap in the real image with script.
+// Ask their image servers for the original instead.
+export function fullImageUrl(u: string): string {
+  const wix = /^(https:\/\/static\.wixstatic\.com\/media\/[^/]+?\.(?:jpe?g|png|webp|gif))\/v1\//i.exec(u);
+  if (wix) return wix[1];
+  if (/squarespace-cdn\.com\//i.test(u)) return u.replace(/[?&]format=\d+w/i, "").replace(/(\?|$)/, (m) => (m ? "?format=2500w&" : "?format=2500w"));
+  if (/cdn\.shopify\.com\//i.test(u)) return u.replace(/_(\d+x\d*|\d*x\d+)(?=\.)/, "").replace(/([?&])width=\d+&?/, "$1");
+  return u;
+}
 function srcsetBest(srcset: string, base: string): string | null {
   let best: { u: string; n: number } | null = null;
   for (const part of srcset.split(/,\s+(?=\S)/)) {
@@ -292,7 +313,7 @@ function srcsetBest(srcset: string, base: string): string | null {
 const SECTORS: { key: string; label: string; re: RegExp }[] = [
   { key: "manufacturing", label: "a manufacturer or engineering firm", re: /\b(cnc|machin(ing|ed|ist)|turning|milling|grinding|fabricat\w*|precision engineer\w*|toolmak\w*|sheet metal|welding|castings?|forgings?|injection mould\w*|presswork|turned parts|laser cutting|powder coat\w*|we manufacture|manufactur(er|ers) of|sub-?contract (machining|manufacturing)|plant list|as ?9100)\b/gi },
   { key: "agency", label: "a digital or marketing agency", re: /\b(web ?design|websites|website (design|builds?|rebuilds?|overhauls?)|web development|seo|digital marketing|marketing agency|branding|brand identity|lead magnets?|landing pages?|social media|ppc|content marketing|agency|quote systems?|ai (tools|agents|workflows))\b/gi },
-  { key: "charity", label: "a charity or community organisation", re: /\b(registered charity|charity (no|number)|charit(y|able)|donat(e|ion|ions)|volunteer\w*|fundrais\w*|community (group|interest|organisation|project)|non-profit|not-for-profit|programmes?|wellbeing|support group)\b/gi },
+  { key: "charity", label: "a charity or community organisation", re: /\b(registered charity|charity (no|number)|charit(y|able)|donat(e|ion|ions)|volunteer\w*|fundrais\w*|community (group|interest|organisation|project)|community interest company|non-profit|not-for-profit|young people|support group)\b/gi },
   { key: "trades", label: "a trades or home-services business", re: /\b(plumb\w*|electricians?|roofing|roofers?|boilers?|heating engineers?|gas safe|builders?|joinery|carpent\w*|plaster\w*|decorators?|landscap\w*|kitchen fitt\w*|bathroom fitt\w*|loft conversions?|niceic|emergency call-?outs?)\b/gi },
   { key: "retail", label: "a shop or online store", re: /\b(add to (basket|cart|bag)|basket|checkout|free delivery|shop now|in stock|online shop|buy now)\b/gi },
   { key: "professional", label: "a professional services firm", re: /\b(solicitors?|law firm|legal services|accountan\w*|bookkeep\w*|tax returns?|financial advis\w*|consultan(cy|ts?)|recruitment|estate agents?|surveyors?|architects?|insurance brok\w*)\b/gi },
@@ -484,7 +505,7 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
   const notIcon = (a: Record<string, string>) => !/logo|icon|sprite|pixel|badge|avatar|flag|payment|spacer|\.svg(\?|$)/i.test((a.src || "") + " " + (a.alt || "") + " " + (a.class || "") + " " + (a.id || ""))
     && !(Number(a.width) > 0 && Number(a.width) < 300) && !(Number(a.height) > 0 && Number(a.height) < 150);
   const cands: { url: string; how: string }[] = [];
-  const addC = (u: string | null | undefined, how: string) => { if (!u || /^data:/i.test(u)) return; try { cands.push({ url: new URL(u.trim(), base).toString(), how }); } catch { /* ignore */ } };
+  const addC = (u: string | null | undefined, how: string) => { if (!u || /^data:/i.test(u) || /blur_\d/i.test(u)) return; try { cands.push({ url: fullImageUrl(new URL(u.trim(), base).toString()), how }); } catch { /* ignore */ } };
   for (const l of openTags(home.text, "link")) if (/preload/i.test(l.rel || "") && /^image$/i.test(l.as || "")) addC(l.imagesrcset ? srcsetBest(l.imagesrcset, base) : l.href, "preloaded");
   const heroBlock = /<(section|div|header|figure)\b[^>]*\b(id|class)=["'][^"']*\b(hero|banner|masthead|slider|carousel|jumbotron|splash|cover|intro)[\w-]*[^"']*["'][^>]*>([\s\S]{0,30000})/i.exec(home.text);
   const scanImgs = (html: string, how: string) => { for (const a of openTags(html, "img").filter(notIcon).slice(0, 3)) addC((a.srcset || a["data-srcset"]) ? srcsetBest(a.srcset || a["data-srcset"], base) : (a.src || a["data-src"] || a["data-lazy-src"]), how); };
@@ -498,18 +519,28 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
   scanImgs(cleanHome, "first large image");
   const og = openTags(home.text, "meta").find((m) => /og:image$/i.test(m.property || ""))?.content;
   let heroImg: { url: string; how: string; w: number; h: number; type: string; kb: number } | null = null;
+  const videoTags = (heroBlock ? openTags(heroBlock[4], "video").concat(openTags(heroBlock[4], "source")) : []).concat(openTags(home.text, "video"), openTags(home.text, "source"));
+  const vsrc = videoTags.map((v) => v.src).find((x) => x && /\.(mp4|m4v|mov)(\?|$)/i.test(x));
+  let heroVideo: { w: number; h: number } | null = null;
+  if (vsrc) { try { const r = await get(new URL(vsrc, base).toString(), o, "bytes", 400_000); heroVideo = r.raw ? videoSize(r.raw) : null; } catch { /* ignore */ } }
   for (const c of cands.filter((c, i) => cands.findIndex((d) => d.url === c.url) === i).slice(0, 4)) {
     const r = await get(c.url, o, "bytes", 300_000);
     const dim = r.raw ? imageSize(r.raw) : null;
     if (dim && dim.w >= 200) { heroImg = { ...c, ...dim, kb: Math.round((Number(r.headers?.get("content-length")) || r.bytes) / 1024) }; break; }
   }
   if (!heroImg && og) { const r = await get(new URL(og, base).toString(), o, "bytes", 300_000); const dim = r.raw ? imageSize(r.raw) : null; if (dim) heroImg = { url: og, how: "the image your site shares on social media", ...dim, kb: Math.round(r.bytes / 1024) }; }
+  if (heroVideo && (!heroImg || heroImg.how === "video poster" || heroVideo.w >= heroImg.w)) {
+    const still = heroImg && heroImg.how === "video poster" ? ` Its still frame, shown before the video plays, is ${heroImg.w.toLocaleString("en-GB")} px wide.` : "";
+    heroImg = { url: vsrc!, how: "hero video", w: heroVideo.w, h: heroVideo.h, type: "video", kb: 0 };
+    (heroImg as { still?: string }).still = still;
+  }
   if (heroImg) {
     const band = RUBRIC.heroWidth.find(([min]) => heroImg!.w >= min)!;
+    const isVideo = heroImg.type === "video";
     const px = `${heroImg.w.toLocaleString("en-GB")} × ${heroImg.h.toLocaleString("en-GB")} px`;
     const big = heroImg.w > 4500 ? ` It’s also far wider than any screen needs, which slows the page (see Page weight).` : "";
-    checks["hero-photo"] = { score: band[1], flaw: `Main image ${px}: ${band[2].charAt(0).toLowerCase() + band[2].slice(1)}`,
-      finding: `The largest version of your main home-page image is ${px} (${heroImg.type}). A main image shown across the full screen needs at least 1,920 px to look sharp on a desktop, and about 2,560 px on high-resolution screens.${big}`,
+    checks["hero-photo"] = { score: band[1], flaw: `${isVideo ? "Main video" : "Main image"} ${px}: ${band[2].charAt(0).toLowerCase() + band[2].slice(1)}`,
+      finding: `${isVideo ? `Your home page opens with a video, ${px}.${(heroImg as { still?: string }).still || ""}` : `The largest version of your main home-page image is ${px} (${heroImg.type}).`} A main image shown across the full screen needs at least 1,920 px to look sharp on a desktop, and about 2,560 px on high-resolution screens.${big}`,
       basis: "measured", note: HERO_NOTE, evidence: { url: heroImg.url.slice(0, 200), found: heroImg.how, w: heroImg.w, h: heroImg.h, type: heroImg.type, kb: heroImg.kb } };
   } else if (!openTags(home.text, "img").filter(notIcon).length && !openTags(home.text, "video").length) {
     checks["hero-photo"] = { score: RUBRIC.hero.noImages, flaw: "No main image on the home page", finding: "The home page has no photo of your work, your products or your premises.", basis: "measured", note: HERO_NOTE };

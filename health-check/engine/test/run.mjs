@@ -38,7 +38,7 @@ c.close();
 // main image, scored on resolution only
 assert.equal(t['hero-photo'].score, 3.0); assert.match(t['hero-photo'].flaw, /1,024 × 640 px/); assert.match(t['hero-photo'].note, /resolution only/);
 assert.equal(s['hero-photo'].score, 9.0); assert.match(s['hero-photo'].flaw, /2,560 ×/);
-assert.equal(one.checks['hero-photo'].score, 8.0); assert.equal(one.checks['hero-photo'].evidence.found, 'video poster');
+assert.equal(one.checks['hero-photo'].score, 8.0); assert.equal(one.checks['hero-photo'].evidence.found, 'hero video'); assert.match(one.checks['hero-photo'].finding, /opens with a video, 1,920 × 1,080 px\. Its still frame.*1,440 px wide/);
 assert.match(one.checks['offer-structure'].note, /reads as a digital or marketing agency/);
 console.log('\nALL ENGINE TESTS PASSED');
 a.close(); b.close();
