@@ -4,6 +4,8 @@
 //   GET  ?id=<uuid> read a run: {id, status, url, report, error}
 // Public by design (the report page calls it without a login), so it does its own checks:
 // address validation and private-network blocking live in engine.ts; rate limits live here.
+// Deployed build imports the engine pinned to a commit of the public repo (see deploy notes in README).
+// Locally and in tests, "./engine.ts" is used.
 import { audit, HcError, normaliseUrl } from "./engine.ts";
 
 

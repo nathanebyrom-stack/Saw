@@ -42,3 +42,14 @@ Not measured, shown as such and left out of every total: hero photo and offer st
 - The scoring rules in `RUBRIC` are a first draft. Ruby and Leo have not seen them.
 - Strings marked `[v5]` are new and have not been through Maya, Edie, Quinn, humanize or the slop gate.
 - Enquiry capture is still off, as in v4.8, until the privacy notice section is live.
+
+## Deploying the engine
+
+The Saw repository is public, so the deployed Edge Function imports the engine straight from a pinned commit
+instead of uploading it. To deploy a new engine version:
+
+1. Commit and push `engine/engine.ts`, and note the commit hash.
+2. Deploy `engine/index.ts` as the `health-check` function (JWT verification off), with its import line changed from
+   `"./engine.ts"` to `"https://raw.githubusercontent.com/nathanebyrom-stack/Saw/<commit>/health-check/engine/engine.ts"`.
+
+Live now: engine 1.1.0 from commit `1dfca48`.
