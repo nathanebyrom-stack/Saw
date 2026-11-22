@@ -34,8 +34,12 @@ NODE_PATH=$(npm root -g) node --no-warnings web/test-page.mjs   # browser tests 
 Scored automatically (15 of 18): headline (rules only), spec page, machine list, tap to call, phone layout, page weight, server speed,
 quote form, reply promise, case studies, certificates, page titles, HTTPS, platform, chat and booking.
 
-Not measured, shown as such and left out of every total: hero photo and offer structure (they need judgement), local listing
-(checked by hand). Mobile load time (LCP) needs a Google PageSpeed Insights key (`PSI_API_KEY` on the function).
+Clarity of offer is scored by rules (what, who for, where, how focused), capped at 8 because rules can't judge quality.
+The site's sector is read from its words; spec page and machine list apply only to sites that read as manufacturers.
+
+Not measured, shown as such and left out of every total: hero photo (needs judgement), local listing (checked by hand),
+and spec page and machine list on non-manufacturer sites. Mobile load time (LCP) needs a Google PageSpeed Insights key
+(`PSI_API_KEY` on the function).
 
 ## Not yet reviewed
 
