@@ -3460,6 +3460,7 @@ if (REPORT){
     };
   }
   function viaConnector(mcp){
+    var kicked = {};
     function sql(q){
       return mcp.callTool(SERVER, 'execute_sql', {project_id: PROJECT, query: q}, {cache:false}).then(function(res){
         var p = res && res.payload; return typeof p === 'string' ? p : (p && typeof p.result === 'string') ? p.result : JSON.stringify(res || '');
@@ -3472,12 +3473,18 @@ if (REPORT){
       },
       read: function(id){
         if (!UUID.test(id)) return Promise.resolve({error: T.notFound});
-        var q = "select 'HCB64:' || encode(convert_to(json_build_object('status', status, 'error', error, 'report', report)::text, 'UTF8'), 'base64') || ':END' as r from public.hc_reports where id = '" + id + "'";
+        var q = "select 'HCB64:' || encode(convert_to(json_build_object('status', status, 'error', error, 'report', report, 'age', extract(epoch from now() - created_at))::text, 'UTF8'), 'base64') || ':END' as r from public.hc_reports where id = '" + id + "'";
         return sql(q).then(function(txt){
           var m = /HCB64:([A-Za-z0-9+\/=\\\s]+?):END/.exec(txt); if (!m) return {error: T.notFound};
           var bin = atob(m[1].replace(/\\[nr]/g, '').replace(/[^A-Za-z0-9+\/=]/g, ''));
           var bytes = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-          return JSON.parse(new TextDecoder('utf-8').decode(bytes));
+          var row = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+          /* a run still waiting after 20 s missed its start signal: send it once more */
+          if (row && row.status === 'queued' && row.age > 20 && !kicked[id]){
+            kicked[id] = true;
+            sql("select net.http_post(url := '" + API + "', body := jsonb_build_object('id', id), headers := '{\"Content-Type\":\"application/json\"}'::jsonb) from public.hc_reports where id = '" + id + "' and status = 'queued'").catch(function(){});
+          }
+          return row;
         });
       }
     };
