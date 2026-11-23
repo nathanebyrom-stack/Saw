@@ -1,0 +1,145 @@
+<title>Section 07 Preview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--graphite:#0E0F11;--plate:#1A1C20;--edge:#2C2F35;--silver:#D4D8DD;--steel:#8C929A;--gold:#C9A24C;--gold-ink:#0E0F11;--gold-fill:#C9A24C;--gold-hi:#F2D58A;--shade:14,15,17;--line:212,216,221;--gold-rgb:201,162,76;color-scheme:dark;
+--f-disp:"Archivo","Arial Narrow",Arial,sans-serif;--f-body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;--gl:max(16px,env(safe-area-inset-left,0px));--gr:max(16px,env(safe-area-inset-right,0px));--max:1240px;--ease:cubic-bezier(.2,.7,.2,1)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--graphite);color:var(--silver);font-family:var(--f-body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:clip}
+h1,h2,h3,p{margin:0}
+h2,h3,.h2,.h3{font-family:var(--f-disp)}
+.wrap{max-width:var(--max);margin-inline:auto;padding-left:var(--gl);padding-right:var(--gr)}
+.lbl{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--steel)}
+.kick{display:inline-flex;flex-wrap:wrap;align-items:stretch;max-width:100%;font-family:var(--f-mono);font-weight:500;text-transform:uppercase;color:var(--silver);border:1px solid rgba(var(--gold-rgb),.65);background:rgba(var(--shade),.4);font-size:10.5px;letter-spacing:.1em}
+.kick>i{font-style:normal;display:flex;align-items:center;background:var(--gold-fill);color:var(--gold-ink);padding:7px 8px;letter-spacing:.08em}
+.kick>span{display:flex;align-items:center;padding:7px 8px;white-space:nowrap}
+.h2{font-size:clamp(30px,4.6vw,56px);font-weight:800;font-stretch:125%;text-transform:uppercase;line-height:.98;letter-spacing:-.005em}
+.h2 em{font-style:normal;color:var(--gold)}
+.h3{font-size:clamp(18px,2vw,22px);font-weight:700;font-stretch:112%;text-transform:uppercase;letter-spacing:.02em;line-height:1.15}
+.lede{font-size:clamp(17px,1.6vw,20px);line-height:1.55;color:var(--steel);max-width:58ch}
+.btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--f-disp);font-stretch:112%;font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;padding:15px 22px;border:1px solid var(--gold);color:var(--gold);background:transparent;transition:background .25s var(--ease),color .25s var(--ease)}
+.btn:hover,.btn:focus-visible{background:var(--gold-fill);border-color:var(--gold-fill);color:var(--gold-ink);outline:none}
+.btn.solid{background:var(--gold-fill);border-color:var(--gold-fill);color:var(--gold-ink)}
+.btn.solid:hover,.btn.solid:focus-visible{background:var(--gold-hi);border-color:var(--gold-hi)}
+.btn svg{width:16px;height:16px}
+.band{position:relative;padding-block:clamp(72px,10vw,140px);isolation:isolate}
+.head{display:grid;gap:28px;margin-bottom:clamp(32px,5vw,56px)}
+.head .rule{height:1px;background:var(--edge)}
+.head .row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px 32px;align-items:end}
+.report{border-top:1px solid var(--edge)}
+.report .lay{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);align-items:start}
+@media (max-width:900px){.report .lay{grid-template-columns:1fr}}
+.report .txt{display:flex;flex-direction:column;gap:14px}
+.report .txt p{color:var(--steel);max-width:58ch}
+.report .txt p+.h3{margin-top:14px}
+.ask{border:1px solid var(--edge);background:var(--plate);display:flex;flex-direction:column;min-width:0}
+.ask .img{aspect-ratio:16/9;overflow:hidden;border-bottom:1px solid var(--edge);background:var(--graphite)}
+.ask .img img{width:100%;height:100%;object-fit:cover}
+.pv-note{font:500 12px/1.4 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);padding:14px var(--gl);border-bottom:1px solid var(--edge)}
+.ph{width:100%;height:100%;display:grid;place-items:center;background:repeating-linear-gradient(135deg,#15171b 0 12px,#191b20 12px 24px);color:var(--steel);font:500 12px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;text-align:center;padding:16px}
+
+/* Section 07 · free report / full report choice. Add to css/site.css. Uses the site's own tokens. */
+.report .txt p b{color:var(--silver);font-weight:500}
+.report .txt .rc-open{align-self:flex-start;margin-top:8px}
+.report .ask .img{border-bottom:0}
+.rc{margin-top:clamp(28px,4vw,48px);border:1px solid var(--edge);background:var(--plate)}
+.rc[hidden]{display:none}
+.rc-h{padding:22px clamp(18px,3vw,28px) 0;outline:none}
+.rc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--edge);margin-top:18px;border-top:1px solid var(--edge)}
+.rc-opt{background:var(--plate);padding:24px clamp(18px,3vw,28px) 26px;display:flex;flex-direction:column;align-items:flex-start;gap:14px;min-width:0}
+.rc-opt .lbl{margin:0;color:var(--gold)}
+.rc-price{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;font-family:var(--f-disp);font-stretch:125%;font-weight:800;font-size:clamp(30px,3.4vw,40px);line-height:1;color:var(--silver)}
+.rc-price span{font-family:var(--f-mono);font-stretch:100%;font-weight:400;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel)}
+.rc-list{list-style:none;margin:0;padding:0;display:grid;gap:9px;flex:1 1 auto}
+.rc-list li{position:relative;padding-left:24px;color:var(--steel);max-width:52ch}
+.rc-list li::before{content:"";position:absolute;left:2px;top:.55em;width:11px;height:6px;border-left:2px solid var(--gold);border-bottom:2px solid var(--gold);transform:rotate(-45deg)}
+.rc-list li.no::before{width:11px;height:0;border-left:0;border-bottom:2px solid var(--steel);transform:none;top:.75em}
+.rc-soon{cursor:default;color:var(--steel);border-color:var(--edge)}
+.rc-soon:hover{background:transparent;border-color:var(--edge);color:var(--steel)}
+.rc-spec{border-top:1px solid var(--edge);padding:20px clamp(18px,3vw,28px) 24px}
+.rc-spec .lbl{margin:0 0 8px;color:var(--gold)}
+.rc-spec p:last-child{margin:0;color:var(--steel);max-width:80ch}
+@media (max-width:760px){.rc-grid{grid-template-columns:1fr}}
+</style>
+<p class="pv-note">Preview · section 07 of 34automation.co.uk · not live · press the gold button</p>
+<section class="band report" id="report" aria-labelledby="report-h">
+  <div class="wrap">
+    <div class="head">
+      <div class="row">
+        <div class="rv"><span class="kick"><i>07</i><span>Website report</span></span>
+          <h2 id="report-h" class="h2" style="margin-top:14px">Your website,<br><em>on the bench.</em></h2></div>
+        <p class="lede rv" style="--i:1">Give us your web address and we'll give you a free report on your site straight away. The full report also shows where you rank against a competitor you choose.</p>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="lay">
+      <div class="txt rv">
+        <h3 class="h3">What's in it</h3>
+        <p>We score the nine things a buyer notices: first impression, clarity of offer, technical detail, mobile, speed, enquiry path, trust signals, SEO basics and AI readiness. Every score comes with what we found and what to do about it. In the full report, a competitor you name goes through the same checks, so you can see where you sit.</p>
+        <h3 class="h3">Your free report</h3>
+        <p>Your free report is instant, and there's nothing to sign up for. It checks everything that can be measured from outside your site, and scores your main photo on its resolution only.</p>
+        <p>Some areas can only be scored by a marketing specialist: the quality of your photos, your headline, how clear your offer is and your Google Business Profile. <b>We don't score these in the free report.</b></p>
+        <p>There's also a full report for £4.99. A marketing specialist goes through your site by eye, scores those areas, adds more detail to the rest and compares you with one competitor you name. It comes back by email within 3 working hours.</p>
+        <a class="btn solid rc-open" id="reportOpen" href="/health-check/">Get your free report <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4"/></svg></a>
+      </div>
+      <div class="ask rv" style="--i:1">
+        <div class="img"><div class="ph">Your micrometer photo stays here</div></div>
+      </div>
+    </div>
+
+    <div class="rc" id="reportChoice" hidden>
+      <h3 class="h3 rc-h" tabindex="-1">Choose your report</h3>
+      <div class="rc-grid">
+        <div class="rc-opt">
+          <p class="lbl">Free report</p>
+          <p class="rc-price">Free <span>On screen in about a minute</span></p>
+          <ul class="rc-list">
+            <li>Checks your site automatically across the nine areas</li>
+            <li>Scores everything that can be measured from outside your site</li>
+            <li>Scores your main photo on its resolution only</li>
+            <li class="no">Doesn't score the areas that need a marketing specialist</li>
+            <li class="no">No competitor comparison</li>
+          </ul>
+          <a class="btn solid" href="/health-check/">Run my free report <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4"/></svg></a>
+        </div>
+        <div class="rc-opt">
+          <p class="lbl">Full report</p>
+          <p class="rc-price">£4.99 <span>By email within 3 working hours</span></p>
+          <ul class="rc-list">
+            <li>Everything in the free report</li>
+            <li>A marketing specialist checks your site by eye and scores the areas the free report leaves out</li>
+            <li>More detail on every check, with notes on what to fix first</li>
+            <li>Your site side by side with one competitor you name</li>
+            <li>Within 3 working hours, Monday to Friday, 9 to 5</li>
+          </ul>
+          <span class="btn rc-soon" aria-disabled="true">Coming soon</span>
+        </div>
+      </div>
+      <div class="rc-spec">
+        <p class="lbl">Scored only by a marketing specialist</p>
+        <p>These need a person's judgement, so we don't score them in the free report: the quality of your photos (sharpness, lighting and whether they show your real work), your headline, how clear your offer is, your Google Business Profile, and how you compare with a competitor. A marketing specialist scores them in the full report.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>// Section 07 · "Get your free report" opens the choice between the free and the full report.
+// Without JavaScript the button is a plain link to the free report. Load with <script src="/js/report-choice.js" defer>.
+(function () {
+  var btn = document.getElementById('reportOpen'), panel = document.getElementById('reportChoice');
+  if (!btn || !panel) return;
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-controls', 'reportChoice');
+  btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    var opening = panel.hidden;
+    panel.hidden = !opening;
+    btn.setAttribute('aria-expanded', String(opening));
+    if (opening) {
+      var h = panel.querySelector('.rc-h');
+      try { panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (x) {}
+      if (h) h.focus({ preventScroll: true });
+    }
+  });
+})();
+</script>
