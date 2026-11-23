@@ -1,7 +1,7 @@
 
 /* =====================================================================
    v5 · LIVE REPORTS (controller). The page above is drawn by hcBoot(report).
-   With no report it shows the Vellmoor sample. A website address typed into
+   With no report the page opens blank (the marketing copy, HC_SAMPLE, opens on the Vellmoor sample). A website address typed into
    the form is sent to the Health Check engine; when the report comes back the
    page is redrawn from it. Two ways to reach the engine:
      - on a normal web page: fetch() to the Supabase Edge Function (API)
@@ -20,16 +20,16 @@
   var PROJECT = 'faaraefaigsngvuuvsyv', SERVER = 'Supabase';
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   var T = {                                                    /* all [v5] */
-    sample:  "This is a sample report for a fictional client. Enter a website address to check a real one.",
+    sample:  HC_SAMPLE ? "This is a sample report for a fictional client. Enter a website address to check a real one." : "Enter your website address and your free report appears here in about a minute.",
     running: "Checking {d}… {n} s. Most sites take under a minute.",
     loading: "Loading that report…",
     ready:   "Report for {d}, measured {when}.",
-    sampleLink: "Show the sample",
+    sampleLink: HC_SAMPLE ? "Show the sample" : "Start again",
     badUrl:  "That website address doesn’t look right. Try something like www.yourcompany.co.uk",
     failed:  "The check couldn’t be run just now. Try again in a few minutes.",
     offline: "We couldn’t reach the checker. Check your connection and try again.",
     slow:    "That site is taking too long to check. Try again in a few minutes.",
-    noLive:  "Live checks aren’t available in this view, so this is the sample report.",
+    noLive:  HC_SAMPLE ? "Live checks aren’t available in this view, so this is the sample report." : "Live checks aren’t available in this view.",
     connect: "Connect Supabase under Settings, Connectors in Claude to run live checks from this page.",
     allow:   "Live checks need your permission to use Supabase from this page. Run it again and choose Allow.",
     notFound:"That report couldn’t be found. Run the check again.",

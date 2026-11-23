@@ -9,6 +9,7 @@ import { mkdirSync } from 'node:fs';
 const OUT = process.env.SHOTS || '/tmp/claude-0/hc-shots'; mkdirSync(OUT, { recursive: true });
 const mock = await startMock(4810);
 const file = pathToFileURL(new URL('../dist/index.html', import.meta.url).pathname).toString();
+const mktFile = pathToFileURL(new URL('../dist/vellmoor-marketing.html', import.meta.url).pathname).toString();
 const API = 'https://faaraefaigsngvuuvsyv.supabase.co/functions/v1/health-check';
 const ORDER_API = 'https://faaraefaigsngvuuvsyv.supabase.co/functions/v1/hc-order';
 const TOKEN = 'ab'.repeat(24), ORDER_ID = '11111111-2222-4333-8444-555555555555';
@@ -47,9 +48,20 @@ async function newPage(opts = {}) {
 const txt = (page, sel) => page.locator(sel).first().innerText();
 async function run(page, url) { await page.fill('#runUrl', url); await page.click('#runBtn'); }
 
-// 1 sample
+// 0 the free / full report page opens blank: no sample client anywhere until a site is checked
 let { page, errors } = await newPage();
-await page.goto(file); await page.waitForTimeout(2200);
+const blankCheck = async () => {
+  assert.equal(await page.title(), 'Website Health Check'); assert.match(await txt(page, '#runStatus'), /Enter your website address/);
+  assert.ok(!/vellmoor/i.test(await page.evaluate(() => document.body.innerText)), 'no Vellmoor text on the blank page');
+  assert.equal(await page.evaluate(() => [...document.querySelectorAll('svg text, svg tspan')].filter((t) => t.getClientRects().length && /vellmoor/i.test(t.textContent)).length), 0);
+  for (const sel of ['.dialcard', '.cats', '#drawing', '#list', '#compare', '#client']) assert.ok(!(await page.locator(sel).first().isVisible()), sel + ' hidden on the blank page');
+  assert.ok(await page.locator('#runForm').isVisible()); assert.ok(await page.locator('#pt').isVisible());
+};
+await page.goto(file); await page.waitForTimeout(1500); await blankCheck();
+await page.screenshot({ path: OUT + '/0-blank.png' });
+
+// 1 the marketing copy opens on the fictional sample
+await page.goto(mktFile); await page.waitForTimeout(2200);
 const sampleDial = await txt(page, '#dialNum'); assert.equal(await page.locator('article.metric').count(), 15); assert.equal(await page.locator('.catbtn').count(), 8);
 assert.match(await txt(page, '#catsH'), /^Eight areas/); assert.match(await txt(page, '#spec'), /15\s*checks\s*8\s*areas/i);
 assert.match(await txt(page, '#m-hero-photo'), /1,280 × 549 px[\s\S]*Scored on resolution only/);
@@ -59,7 +71,8 @@ assert.equal(await page.locator('#tally > div').count(), 4); assert.match(await 
 assert.match(await page.title(), /Vellmoor Precision \(sample\)/);
 await page.screenshot({ path: OUT + '/1-sample.png' });
 
-// 2 bad address
+// 2 bad address (from here on, the free report page)
+await page.goto(file); await page.waitForTimeout(1200);
 await run(page, 'not a website'); assert.match(await txt(page, '#runStatus'), /doesn’t look right/);
 // 3 unreachable site -> engine error surfaces
 await run(page, 'nowhere.test'); await page.waitForFunction(() => /couldn’t reach/.test(document.getElementById('runStatus').textContent), null, { timeout: 15000 });
@@ -105,9 +118,10 @@ assert.equal(await page.locator('#m-tap-to-call .addfix').count(), 0);
 console.log('sharp: dial', sharpDial, '| verdict:', (await txt(page, '#verdictSay')).slice(0, 40));
 await page.locator('#m-tap-to-call').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + '/5-sharp-cards.png' });
 
-// 6 back to the sample
-await page.click('#runStatus [data-sample]'); await page.waitForTimeout(1800);
-assert.equal(await txt(page, '#dialNum'), sampleDial); assert.ok(await page.locator('#drawing').isVisible()); assert.ok(!/[?&]r=/.test(page.url()));
+// 6 start again: back to the blank page
+assert.match(await txt(page, '#runStatus'), /Start again/);
+await page.click('#runStatus [data-sample]'); await page.waitForTimeout(1500);
+await blankCheck(); assert.ok(!/[?&]r=/.test(page.url()));
 assert.deepEqual(errors, [], 'no script errors (web mode)');
 
 // 6b the paid full report report, opened from its private link

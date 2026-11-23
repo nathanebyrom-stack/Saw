@@ -35,7 +35,7 @@ rep('draw button', '<a class="btn gold" href="#drawing">', '<a class="btn gold" 
 rep('footer notes', '        <p data-copy="footerFixFirst"></p>', '        <p data-copy="footerFixFirst"></p>\n        <p id="hcAuto" hidden></p>\n        <ul id="hcNotes" hidden></ul>');
 
 /* ---- script: the page body becomes hcBoot(REPORT) ---- */
-rep('boot open', '<script>\n(function(){\n"use strict";\nvar reduce = ', '<script>\nfunction hcBoot(REPORT){\n"use strict";\nvar reduce = ');
+rep('boot open', '<script>\n(function(){\n"use strict";\nvar reduce = ', '<script>\nvar HC_SAMPLE = false;   /* true only in the Vellmoor marketing copy; the free and full report pages open blank */\nfunction hcBoot(REPORT){\n"use strict";\nvar reduce = ');
 rep('client', 'var CLIENT = {name:"Vellmoor Precision", site:"www.vellmoor.example", tested:"20 November 2026, 17:32"};',
 `var CLIENT = {name:"Vellmoor Precision", site:"www.vellmoor.example", tested:"20 November 2026, 17:32"};
 /* v5 · a live report replaces the sample client */
@@ -63,6 +63,7 @@ rep('copy', '  prototype:     "Prototype · not yet reviewed for publication"\n}
   v5Auto:        "Automatic report · scoring rules awaiting review",
   v5AutoHow:     "This report was produced automatically, from outside your site. Checks marked Not measured are left out of the area scores and the overall score, and never count as a Fail."
 };
+if (!REPORT && !HC_SAMPLE) COPY.specTag = 'Free website health check';
 var FULL = REPORT && REPORT.full;   /* v5.2 · the paid full report: a designer's review laid over the automatic report */
 if (REPORT){
   var hcPages = (REPORT.sources || {}).pages || 1;
@@ -103,7 +104,7 @@ rep('status lookup', 'var stById = {}; STATUSES.forEach(function(s){stById[s.k]=
 var MEAS = M.filter(function(m){ return typeof m.raw === 'number'; });
 var SHOWN = MEAS.length < M.length ? STATUSES.concat([NM]) : STATUSES;`);
 rep('statusOf', 'function statusOf(score){ for (var i=', "function statusOf(score){ if (typeof score !== 'number' || !isFinite(score)) return NM; for (var i=");
-rep('doc title', "CLIENT.name + ' (prototype)'; } catch(e){}", "CLIENT.name + (REPORT ? '' : ' (sample)'); } catch(e){}");
+rep('doc title', "' · ' + CLIENT.name + ' (prototype)'; } catch(e){}", "(!REPORT && !HC_SAMPLE ? '' : ' · ' + CLIENT.name + (REPORT ? '' : ' (sample)')); } catch(e){}");
 rep('sum', 'var sum = M.reduce(function(a,m){return a+m.raw;},0);', 'var sum = MEAS.reduce(function(a,m){return a+m.raw;},0);');
 rep('total', 'var total = Math.round(sum/(M.length*10)*100);', 'var total = MEAS.length ? Math.round(sum/(MEAS.length*10)*100) : 0;');
 rep('catScore', '  var ms = M.filter(function(m){return m.cat===cid;});', '  var ms = MEAS.filter(function(m){return m.cat===cid;}); if (!ms.length) return null;   /* v5 · null = nothing measured in this area */');
@@ -192,6 +193,15 @@ if (REPORT){
   var hcN = $('hcNotes'), hcNotes = REPORT.notes || [];
   if (hcNotes.length){ hcN.innerHTML = hcNotes.map(function(t){ return '<li>'+esc(t)+'</li>'; }).join(''); hcN.hidden = false; }
 }
+/* v5.5 · the free and full report pages open blank (Nathan, 23 Nov): nothing from the sample client shows until a site
+   is checked. Only the marketing copy (HC_SAMPLE) opens on the fictional Vellmoor sample. */
+document.body.classList.toggle('hc-blank', !REPORT && !HC_SAMPLE);
+if (!REPORT && !HC_SAMPLE){
+  document.querySelectorAll('.backdrop text, .backdrop tspan').forEach(function(t){
+    if (t.children.length) return; var x = t.textContent; if (!/vellmoor/i.test(x)) return;
+    t.textContent = x.replace(/https?:\\/\\/(www\\.)?vellmoor\\.example/gi, 'https://www.yourcompany.co.uk').replace(/(www\\.)?vellmoor\\.example/gi, 'www.yourcompany.co.uk').replace(/Home \\| Vellmoor/g, 'Home | Your company').replace(/Vellmoor( Precision)?/g, 'Your company');
+  });
+}
 }
 ${read('web/controller.js')}</script>`);
 
@@ -201,7 +211,7 @@ for (const m of s.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);
 mkdirSync(join(here, 'dist'), { recursive: true });
 writeFileSync(join(here, 'dist/index.html'), s);
 // marketing copy for video shorts (Nathan, 23 Nov): the same working page, opening on the fictional Vellmoor sample
-writeFileSync(join(here, 'dist/vellmoor-marketing.html'), s.replace('<title>Website Health Check</title>', '<title>Vellmoor Health Check</title>'));
+writeFileSync(join(here, 'dist/vellmoor-marketing.html'), s.replace('<title>Website Health Check</title>', '<title>Vellmoor Health Check</title>').replace('var HC_SAMPLE = false;', 'var HC_SAMPLE = true;'));
 
 /* ---- site build: 34automation.co.uk/health-check/ ----
    The site's CSP allows only its own scripts and fonts: the page script moves to app.js and the
