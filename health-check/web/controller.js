@@ -16,8 +16,7 @@
   var API = 'https://faaraefaigsngvuuvsyv.supabase.co/functions/v1/health-check';
   var ORDER_API = 'https://faaraefaigsngvuuvsyv.supabase.co/functions/v1/hc-order';
   /* Paid orders stay OFF until the privacy notice's Health Check section is live (team rule, ticket 23).
-     The server checks too (hc_config.paid_on), so flipping this alone takes no money. */
-  var PAID_ON = false;
+     The switch is hc_config.paid_on in Supabase. The page asks it before sending any personal details. */
   var PROJECT = 'faaraefaigsngvuuvsyv', SERVER = 'Supabase';
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   var T = {                                                    /* all [v5] */
@@ -102,10 +101,13 @@
       if (cu && !okUrl(cu)) return bad('ptCompUrl', O.compUrl);
       if (!$('ptConsent').checked) return bad('ptConsent', O.consent);
       err.textContent = '';
-      if (!PAID_ON){ st.textContent = O.off; return; }
       var order = {url: v('ptUrl'), name: v('ptName'), email: v('ptEmail'), competitor: cn ? {name: cn, url: cu} : null, consent: true};
       pay.disabled = true; st.textContent = O.making;
-      transport().then(function(tp){ if (!tp || !tp.order) throw {hc: T.noLive}; return tp.order(order); }).then(function(r){
+      var tp0 = null;
+      transport().then(function(tp){ if (!tp || !tp.order) throw {hc: T.noLive}; tp0 = tp; return tp.isOpen(); }).then(function(open){
+        if (!open) throw {hc: O.off};                 /* nothing personal has left the page */
+        return tp0.order(order);
+      }).then(function(r){
         if (!r || !r.checkout_url || !/^https:\/\/checkout\.stripe\.com\//.test(r.checkout_url)) throw {hc: (r && r.error) || O.failed};
         if (!inArtifact){ st.textContent = O.go; location.href = r.checkout_url; return; }
         st.textContent = ''; var a = document.createElement('a'); a.href = r.checkout_url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = O.link + ' →'; st.appendChild(a); pay.disabled = false;
@@ -126,7 +128,10 @@
     return {
       start: function(url){ return fetch(API, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({url:url, source:'web'})}).then(body); },
       read:  function(id){ return fetch(API + '?id=' + encodeURIComponent(id), {cache:'no-store'}).then(body); },
-      order: function(o){ return fetch(ORDER_API, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(o)}).then(body); }
+      order: function(o){ return fetch(ORDER_API, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(o)}).then(body); },
+      isOpen: function(){ return fetch(ORDER_API + '?open', {cache:'no-store'}).then(body).then(function(b){ return !!(b && b.open); }); },
+      full:  function(token){ return fetch(ORDER_API + '?token=' + encodeURIComponent(token), {cache:'no-store'}).then(body); },
+      paid:  function(id){ return fetch(ORDER_API + '?status=' + encodeURIComponent(id), {cache:'no-store'}).then(body); }
     };
   }
   function viaConnector(mcp){
@@ -155,6 +160,18 @@
             sql("select net.http_post(url := '" + API + "', body := jsonb_build_object('id', id), headers := '{\"Content-Type\":\"application/json\"}'::jsonb) from public.hc_reports where id = '" + id + "' and status = 'queued'").catch(function(){});
           }
           return row;
+        });
+      },
+      isOpen: function(){ return sql("select 'HCOPEN:' || paid_on::text || ':END' as r from public.hc_config where id = 1").then(function(t){ return /HCOPEN:true:END/.test(t); }); },
+      /* the customer's full report, by its private token (same data the web route returns) */
+      full: function(token){
+        if (!/^[0-9a-f]{48}$/.test(token)) return Promise.resolve({error: T.notFound});
+        var q = "select 'HCB64:' || encode(convert_to(json_build_object('order', json_build_object('site', regexp_replace(regexp_replace(o.url, '^https?://', ''), '^www\\.', ''), 'competitor_name', o.competitor_name, 'competitor_url', o.competitor_url, 'review', o.review, 'delivered_at', o.delivered_at), 'report', r.report, 'competitor_report', c.report)::text, 'UTF8'), 'base64') || ':END' as r from public.hc_orders o left join public.hc_reports r on r.id = o.report_id left join public.hc_reports c on c.id = o.competitor_report_id where o.access_token = '" + token + "' and o.status in ('delivered', 'review')";
+        return sql(q).then(function(txt){
+          var m = /HCB64:([A-Za-z0-9+\/=\\\s]+?):END/.exec(txt); if (!m) return {error: T.notFound};
+          var bin = atob(m[1].replace(/\\[nr]/g, '').replace(/[^A-Za-z0-9+\/=]/g, ''));
+          var bytes = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          return JSON.parse(new TextDecoder('utf-8').decode(bytes));
         });
       },
       /* in a Claude artifact: queue the order in the database; the order function makes the Stripe checkout and stores its link */
@@ -239,10 +256,49 @@
     }).then(function(report){ if (seq === runSeq) finish(report, runId); }, function(err){ if (seq === runSeq) fail(err); });
   }
 
+  /* ---------- the paid Performance Test report: the automatic report with the designer's review laid over it ---------- */
+  function mergeFull(d){
+    var rep = JSON.parse(JSON.stringify(d.report || {})), rv = (d.order && d.order.review) || {}, ch = rv.checks || {};
+    rep.checks = rep.checks || {};
+    Object.keys(ch).forEach(function(k){
+      var x = ch[k] || {}, c = rep.checks[k] || (rep.checks[k] = {});
+      if (typeof x.score === 'number' && isFinite(x.score)) { c.score = Math.max(0, Math.min(10, Math.round(x.score * 10) / 10)); c.basis = 'designer'; }
+      if (x.found) c.flaw = String(x.found);
+      c.note = x.note ? 'Designer’s note: ' + x.note : (c.basis === 'designer' ? 'Checked by a designer.' : c.note);
+    });
+    var cr = d.competitor_report, o = d.order || {};
+    rep.full = { summary: rv.summary || '', priorities: (rv.priorities || []).filter(Boolean), competitorNote: rv.competitor_note || '', delivered_at: o.delivered_at,
+      competitor: cr ? { name: o.competitor_name || cr.name, domain: bare(o.competitor_url || cr.domain), url: 'https://' + bare(o.competitor_url || cr.domain), values: cr.values || {} } : null };
+    return rep;
+  }
+  function fullFromAddress(){
+    try { var q = new URLSearchParams(location.search).get('full'); if (q && /^[0-9a-f]{48}$/.test(q)) return q; } catch (e){}
+    var h = /^#full-([0-9a-f]{48})$/.exec(location.hash || ''); return h ? h[1] : null;
+  }
+  var P = {                                                    /* [v5.2] */
+    loading: 'Loading your Performance Test…', ready: 'Your Performance Test for {d}, reviewed by a 34 Automation designer.',
+    paid: 'Payment received, thank you. Your Performance Test for {d} will be with you by email by {due}.',
+    paidSoon: 'Payment received, thank you. Your Performance Test will be with you by email within 3 working hours.',
+    cancelled: 'Payment cancelled. Nothing has been charged.', missing: 'That report link isn’t valid, or the report isn’t ready yet.'
+  };
+
   /* ---------- start ---------- */
   mount(null);
-  var ref = refFromAddress();
-  if (ref){
+  var ref = refFromAddress(), fullTok = fullFromAddress(), qs = {};
+  try { var sp = new URLSearchParams(location.search); qs.paid = sp.get('paid'); qs.cancelled = sp.get('cancelled'); } catch (e){}
+  if (fullTok){
+    ref = null; var seqF = ++runSeq; ui.busy = true; say(P.loading, false, false);
+    transport().then(function(tp){ if (!tp || !tp.full) throw {hc: T.noLive}; return tp.full(fullTok); }).then(function(d){
+      if (seqF !== runSeq) return;
+      if (!d || !d.report) throw {hc: (d && d.error) || P.missing};
+      var rep = mergeFull(d); stopTick(); ui.busy = false; ui.value = rep.domain || ''; ui.err = false; ui.link = false;
+      ui.text = fill(P.ready, {d: rep.domain || ''}); mount(rep); try { window.scrollTo(0, 0); } catch (e){}
+    }).catch(function(err){ if (seqF === runSeq) fail(err); });
+  } else if (qs.paid && UUID.test(qs.paid)){
+    say(P.paidSoon, false, false);
+    transport().then(function(tp){ return tp && tp.paid ? tp.paid(qs.paid) : null; }).then(function(r){ if (r && r.due_text) say(fill(P.paid, {d: r.site || '', due: r.due_text}), false, false); }).catch(function(){});
+  } else if (qs.cancelled){ say(P.cancelled, false, false); }
+  if (ref && !fullTok){
     var seq0 = ++runSeq; ui.busy = true; say(T.loading, false, false);
     transport().then(function(tp){ if (!tp) throw {hc: T.noLive}; return tp.read(ref); })
       .then(function(row){ if (seq0 !== runSeq) return; if (row && row.status === 'done' && row.report) finish(row.report, ref); else if (row && (row.status === 'running' || row.status === 'queued')) return transport().then(function(tp){ return poll(tp, ref, seq0); }).then(function(rep){ if (seq0 === runSeq) finish(rep, ref); }); else throw {hc: (row && row.error) || T.notFound}; })

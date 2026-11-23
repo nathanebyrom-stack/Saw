@@ -10,6 +10,19 @@ const OUT = process.env.SHOTS || '/tmp/claude-0/hc-shots'; mkdirSync(OUT, { recu
 const mock = await startMock(4810);
 const file = pathToFileURL(new URL('../dist/index.html', import.meta.url).pathname).toString();
 const API = 'https://faaraefaigsngvuuvsyv.supabase.co/functions/v1/health-check';
+const ORDER_API = 'https://faaraefaigsngvuuvsyv.supabase.co/functions/v1/hc-order';
+const TOKEN = 'ab'.repeat(24), ORDER_ID = '11111111-2222-4333-8444-555555555555';
+const reportFor = (host) => [...mock.rows.values()].find((r) => r.report && r.report.domain === host)?.report;
+function orderApi(u) {   // stand-in for hc-order: orders closed, one delivered report, one paid order
+  const q = new URL(u).searchParams;
+  if (q.has('open')) return { open: false };
+  if (q.get('status') === ORDER_ID) return { status: 'paid', due_text: 'Tuesday 24 November, 10.30am', site: 'tired.test' };
+  if (q.get('token') === TOKEN) return { order: { site: 'tired.test', competitor_name: 'Calderbrook Precision', competitor_url: 'sharp.test', delivered_at: '2026-11-23T11:00:00Z',
+    review: { checks: { 'hero-photo': { score: 6.5, note: 'A real photo of your shop floor, but it is dark and cropped tight.' }, 'offer-structure': { score: 4, found: 'Says what you do, not who it is for' } },
+      summary: 'Your site works, but it undersells you.\nStart with the quote form.', priorities: ['Add a quote form with drawing upload', 'Rewrite the headline', 'Move to HTTPS'] } },
+    report: reportFor('tired.test'), competitor_report: reportFor('sharp.test') };
+  return { error: 'No report' };
+}
 const browser = await chromium.launch();
 async function newPage(opts = {}) {
   const ctx = await browser.newContext({ viewport: opts.viewport || { width: 1280, height: 900 }, deviceScaleFactor: 1 });
@@ -18,6 +31,7 @@ async function newPage(opts = {}) {
   page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.g|ERR_|Failed to load resource/i.test(m.text())) errors.push('console: ' + m.text()); });
   await page.route('**/*', (route) => {
     const u = route.request().url();
+    if (u.startsWith(ORDER_API)) return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' }, body: JSON.stringify(orderApi(u)) });
     if (u.startsWith(API)) {
       const rq = route.request(), cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'GET,POST,OPTIONS' };
       if (rq.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
@@ -75,7 +89,8 @@ await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /Add your na
 await page.fill('#ptName', 'Sam Tester'); await page.fill('#ptEmail', 'sam@tired.test'); await page.fill('#ptCompName', 'Rival Ltd');
 await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /both their company name and their website/);
 await page.fill('#ptCompUrl', 'rival.test'); await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /privacy notice/);
-await page.check('#ptConsent'); await page.click('#ptPay'); assert.match(await txt(page, '#ptStatus'), /not taking Performance Test orders just yet/);
+await page.check('#ptConsent'); await page.click('#ptPay');
+await page.waitForFunction(() => /not taking Performance Test orders just yet/.test(document.getElementById('ptStatus').textContent), null, { timeout: 5000 });
 await page.locator('#pt').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + '/7-order.png' });
 // fix list still works on a live report
 await page.click('#addFail'); assert.ok(await page.locator('#flItems li:not(.empty)').count() >= 5);
@@ -94,6 +109,27 @@ await page.locator('#m-tap-to-call').scrollIntoViewIfNeeded(); await page.screen
 await page.click('#runStatus [data-sample]'); await page.waitForTimeout(1800);
 assert.equal(await txt(page, '#dialNum'), '43'); assert.ok(await page.locator('#drawing').isVisible()); assert.ok(!/[?&]r=/.test(page.url()));
 assert.deepEqual(errors, [], 'no script errors (web mode)');
+
+// 6b the paid Performance Test report, opened from its private link
+const full = await newPage();
+await full.page.goto(file + '?full=' + TOKEN);
+await full.page.waitForFunction(() => /reviewed by a 34 Automation designer/.test(document.getElementById('runStatus').textContent), null, { timeout: 15000 });
+await full.page.waitForTimeout(1500);
+assert.match(await txt(full.page, '#designer'), /What we’d do first[\s\S]*undersells you[\s\S]*Add a quote form/);
+assert.match(await txt(full.page, '#m-hero-photo'), /6\.5[\s\S]*Designer’s note: A real photo/);
+assert.match(await txt(full.page, '#m-offer-structure'), /Says what you do, not who it is for/);
+assert.match(await txt(full.page, '#rvH'), /Compared with Calderbrook Precision/); assert.match(await txt(full.page, '#rivals'), /sharp\.test/);
+assert.equal(await full.page.locator('#pt').count(), 0); assert.ok(!(await full.page.locator('#runForm').isVisible()));
+assert.match(await txt(full.page, '.spec-tag'), /Performance Test/i);
+await full.page.screenshot({ path: OUT + '/8-full-top.png' });
+await full.page.locator('#designer').scrollIntoViewIfNeeded(); await full.page.screenshot({ path: OUT + '/9-full-designer.png' });
+await full.page.locator('#compare').scrollIntoViewIfNeeded(); await full.page.screenshot({ path: OUT + '/10-full-compare.png' });
+assert.deepEqual(full.errors, []);
+// 6c back from Stripe
+await full.page.goto(file + '?paid=' + ORDER_ID); await full.page.waitForTimeout(1200);
+assert.match(await txt(full.page, '#runStatus'), /Payment received[\s\S]*by Tuesday 24 November, 10\.30am/);
+await full.page.goto(file + '?cancelled=' + ORDER_ID); await full.page.waitForTimeout(600);
+assert.match(await txt(full.page, '#runStatus'), /Nothing has been charged/);
 
 // 7 open a saved report by its link
 await page.goto(reportUrl); await page.waitForFunction(() => /Report for tired\.test/.test(document.getElementById('runStatus').textContent), null, { timeout: 15000 });

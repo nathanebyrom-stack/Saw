@@ -64,3 +64,7 @@ body[data-bg="c"] .runbox{background:rgba(255,255,255,.3)}
 .rv.pt-slot .rv-k{color:var(--gold)}
 .rv.pt-slot p{color:#E8EAED}
 @media print{.pt{display:none!important}}
+.pt-sum{margin:12px 0 0;max-width:46em;font:500 16px/1.6 var(--f-body);color:#E8EAED}
+.pt-pri{margin:16px 0 0;padding-left:22px;display:grid;gap:8px;max-width:46em}
+.pt-pri li{font:600 15px/1.5 var(--f-body);color:#fff}
+.pt-pri li::marker{color:var(--gold);font-family:var(--f-mono)}
