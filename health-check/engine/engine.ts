@@ -7,7 +7,7 @@
 // NOT been reviewed by Ruby or Leo. Every threshold lives in RUBRIC so it can be tuned
 // in one place.
 
-export const ENGINE_VERSION = "1.2.1";
+export const ENGINE_VERSION = "1.2.2";
 
 export interface Options {
   allowLocal?: boolean;        // tests only: lets the engine fetch localhost
@@ -505,7 +505,7 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
   const notIcon = (a: Record<string, string>) => !/logo|icon|sprite|pixel|badge|avatar|flag|payment|spacer|\.svg(\?|$)/i.test((a.src || "") + " " + (a.alt || "") + " " + (a.class || "") + " " + (a.id || ""))
     && !(Number(a.width) > 0 && Number(a.width) < 300) && !(Number(a.height) > 0 && Number(a.height) < 150);
   const cands: { url: string; how: string }[] = [];
-  const addC = (u: string | null | undefined, how: string) => { if (!u || /^data:/i.test(u) || /blur_\d/i.test(u)) return; try { cands.push({ url: fullImageUrl(new URL(u.trim(), base).toString()), how }); } catch { /* ignore */ } };
+  const addC = (u: string | null | undefined, how: string) => { if (!u || /^data:/i.test(u)) return; try { const full = fullImageUrl(new URL(u.trim(), base).toString()); if (!/blur_\d/i.test(full)) cands.push({ url: full, how }); } catch { /* ignore */ } };
   for (const l of openTags(home.text, "link")) if (/preload/i.test(l.rel || "") && /^image$/i.test(l.as || "")) addC(l.imagesrcset ? srcsetBest(l.imagesrcset, base) : l.href, "preloaded");
   const heroBlock = /<(section|div|header|figure)\b[^>]*\b(id|class)=["'][^"']*\b(hero|banner|masthead|slider|carousel|jumbotron|splash|cover|intro)[\w-]*[^"']*["'][^>]*>([\s\S]{0,30000})/i.exec(home.text);
   const scanImgs = (html: string, how: string) => { for (const a of openTags(html, "img").filter(notIcon).slice(0, 3)) addC((a.srcset || a["data-srcset"]) ? srcsetBest(a.srcset || a["data-srcset"], base) : (a.src || a["data-src"] || a["data-lazy-src"]), how); };
