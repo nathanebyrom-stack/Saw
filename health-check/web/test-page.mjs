@@ -69,7 +69,7 @@ assert.match(await txt(page, '#client'), /Harrowgate/); assert.ok(!(await page.l
 assert.equal(await page.locator('#tally > div').count(), 5); assert.equal(await page.locator('article.metric').count(), 18);
 const tiredDial = Number(await txt(page, '#dialNum')); assert.ok(tiredDial > 20 && tiredDial < 45, 'tired dial ' + tiredDial);
 assert.match(await txt(page, '#m-headline'), /Welcome to our website/);   // kept as a note assert.match(await txt(page, '#m-offer-structure'), /Full report only[\s\S]*isn’t scored in the free report/i); assert.match(await txt(page, '#m-offer-structure .fix'), /marketing specialist scores this in the full report/);
-assert.match(await txt(page, '#m-headline'), /Full report only/i); assert.match(await txt(page, '#pt'), /We don’t score these in the free report/);
+assert.match(await txt(page, '#m-headline'), /Full report only/i); assert.match(await txt(page, '#pt'), /the free report doesn’t score them/);
 assert.match(await txt(page, '#m-local-listing'), /Full report only/i);
 assert.match(await txt(page, '#m-local-listing .fix'), /marketing specialist/); assert.equal(await page.locator('#m-local-listing .addfix').count(), 0);
 assert.match(await txt(page, '#rivals'), /Harrowgate/); assert.match(await txt(page, '#cmpRows'), /Not measured/i);
