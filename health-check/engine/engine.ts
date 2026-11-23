@@ -7,7 +7,7 @@
 // NOT been reviewed by Ruby or Leo. Every threshold lives in RUBRIC so it can be tuned
 // in one place.
 
-export const ENGINE_VERSION = "1.2.2";
+export const ENGINE_VERSION = "1.3.0";
 
 export interface Options {
   allowLocal?: boolean;        // tests only: lets the engine fetch localhost
@@ -22,7 +22,7 @@ export interface CheckResult {
   flaw: string;                // short "Found" line
   finding: string;             // one sentence of detail
   nm?: string;                 // why it wasn't measured
-  basis: "measured" | "rule" | "not-measured";
+  basis: "measured" | "rule" | "not-measured" | "specialist";
   evidence?: Record<string, unknown>;
   note?: string;               // shown under the check on the report
 }
@@ -498,10 +498,10 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
   const checks: Record<string, CheckResult> = {};
   const values: Report["values"] = {};
   const nm = (why: string): CheckResult => ({ score: null, flaw: "Not measured", finding: why, nm: why, basis: "not-measured" });
-  const NEEDS_EYE = "This one needs a person’s eye, so it isn’t scored automatically. We go through it with you in your Performance Test.";
+  const NEEDS_EYE = "This one needs a person’s eye, so it isn’t scored automatically. We go through it with you in your full report.";
 
-  /* 1 hero photo: scored on resolution only. The photo itself is judged by a designer in the Performance Test. */
-  const HERO_NOTE = "Scored on resolution only. Sharpness, lighting and whether it shows your real work are judged by a designer in the Performance Test.";
+  /* 1 hero photo: scored on resolution only. The photo itself is judged by a marketing specialist in the full report. */
+  const HERO_NOTE = "Scored on resolution only. Sharpness, lighting and whether it shows your real work are judged by a marketing specialist in the full report.";
   const notIcon = (a: Record<string, string>) => !/logo|icon|sprite|pixel|badge|avatar|flag|payment|spacer|\.svg(\?|$)/i.test((a.src || "") + " " + (a.alt || "") + " " + (a.class || "") + " " + (a.id || ""))
     && !(Number(a.width) > 0 && Number(a.width) < 300) && !(Number(a.height) > 0 && Number(a.height) < 150);
   const cands: { url: string; how: string }[] = [];
@@ -544,7 +544,7 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
       basis: "measured", note: HERO_NOTE, evidence: { url: heroImg.url.slice(0, 200), found: heroImg.how, w: heroImg.w, h: heroImg.h, type: heroImg.type, kb: heroImg.kb } };
   } else if (!openTags(home.text, "img").filter(notIcon).length && !openTags(home.text, "video").length) {
     checks["hero-photo"] = { score: RUBRIC.hero.noImages, flaw: "No main image on the home page", finding: "The home page has no photo of your work, your products or your premises.", basis: "measured", note: HERO_NOTE };
-  } else checks["hero-photo"] = { ...nm("We couldn’t pick out and measure your main image, so this one’s Not measured. A designer checks it in the Performance Test."), note: HERO_NOTE };
+  } else checks["hero-photo"] = { ...nm("We couldn’t pick out and measure your main image, so this one’s Not measured. A marketing specialist checks it in the full report."), note: HERO_NOTE };
 
   /* 2 headline */
   const h1s = blocks(cleanHome, "h1").map((b) => textOf(b.inner) || (attrs((/<img\b[^>]*>/i.exec(b.inner) || [""])[0]).alt || "")).filter(Boolean);
@@ -559,7 +559,7 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
   if (!h1) checks["headline"] = { score: RUBRIC.headline.none, flaw: "No main headline on the home page", finding: "The home page has no main headline (H1), so visitors and search engines aren’t told what you do.", basis: "rule" };
   else if (P.generic.test(h1) || h1.toLowerCase() === guessName.toLowerCase()) checks["headline"] = { score: RUBRIC.headline.generic, flaw: `“${h1.slice(0, 70)}” headline`, finding: "The headline doesn’t say what you make, who for, or in what quantities.", basis: "rule", evidence: { h1 } };
   else if (h1.split(/\s+/).length <= 2) checks["headline"] = { score: RUBRIC.headline.tooShort, flaw: `“${h1.slice(0, 70)}” headline`, finding: "The headline is only a word or two, so it can’t say what you make or who for.", basis: "rule", evidence: { h1 } };
-  else checks["headline"] = { score: RUBRIC.headline.recorded, flaw: `Headline: “${h1.slice(0, 90)}”`, finding: "There’s a real headline on the home page. How well it sells isn’t judged automatically; we look at that with you in your Performance Test.", basis: "rule", evidence: { h1 } };
+  else checks["headline"] = { score: RUBRIC.headline.recorded, flaw: `Headline: “${h1.slice(0, 90)}”`, finding: "There’s a real headline on the home page. How well it sells isn’t judged automatically; we look at that with you in your full report.", basis: "rule", evidence: { h1 } };
   values.h1 = h1 ? { v: h1.slice(0, 140), at } : { v: null, at, nm: "No H1 found" };
 
   /* 3 offer structure: what the site is for, who it serves and how focused the offer is, by fixed rules */
@@ -583,7 +583,7 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
     score: cs, flaw: flawO + (listCount > 12 ? `; ${listCount} services listed` : ""),
     finding: `${reads} ${listCount > 12 ? `There are ${listCount} services or processes listed, which is a lot for a buyer to sort through. ` : ""}Judged by fixed rules from your page title, description and headings, not by a person.`,
     basis: "rule", evidence: { sector: sector.key, who: who || null, where, services: listCount },
-    note: `${reads} Scored by fixed rules from your page title, description and headings. A designer judges how clear it is to a buyer in the Performance Test.`,
+    note: `${reads} Scored by fixed rules from your page title, description and headings. A marketing specialist judges how clear it is to a buyer in the full report.`,
   };
 
   /* 4 spec page */
@@ -624,7 +624,7 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
   checks["responsive"] = !hasViewport
     ? { score: RUBRIC.responsive.noViewport, flaw: "No phone layout set", finding: "The page doesn’t tell phones how to size it, so it shows as a shrunken desktop page.", basis: "measured" }
     : breakpoints > 0 || builder
-      ? { score: RUBRIC.responsive.viewportAndBreakpoints, flaw: "Phone layout is set up", finding: "The page is set up to resize for phones. Sideways scrolling is checked on a real phone in your Performance Test.", basis: "measured", evidence: { breakpoints } }
+      ? { score: RUBRIC.responsive.viewportAndBreakpoints, flaw: "Phone layout is set up", finding: "The page is set up to resize for phones. Sideways scrolling is checked on a real phone in your full report.", basis: "measured", evidence: { breakpoints } }
       : { score: RUBRIC.responsive.viewportOnly, flaw: "Phone sizing set, no phone layout rules found", finding: "The page sets a phone width but no layout rules for small screens were found, so parts may run off the side.", basis: "measured" };
   values.mobile = { v: hasViewport && (breakpoints > 0 || builder), at };
 
@@ -733,7 +733,7 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
   values.titles = { v: !!hp.title && uniq === titles.length && !!desc && pages.length > 1, at };
 
   /* 15 local listing */
-  checks["local-listing"] = nm("Your Google Business Profile is checked by hand, signed out, so it isn’t scored automatically. We go through it with you in your Performance Test.");
+  checks["local-listing"] = nm("Your Google Business Profile is checked by hand, signed out, so it isn’t scored automatically. We go through it with you in your full report.");
   values.listing = { v: null, at, nm: "Checked by hand" };
 
   /* 16 https */
@@ -779,6 +779,17 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
     ? { score: RUBRIC.tools.none, flaw: "No chat, WhatsApp or booking found", finding: "No chat, WhatsApp or booking was found in the page code. Buyers get a phone number or an email link, and that’s it.", basis: "measured" }
     : { score: kinds > 1 ? RUBRIC.tools.several : RUBRIC.tools.one, flaw: `${found.slice(0, 3).join(", ")} found`, finding: `${found.join(", ")} found in the page code. We don’t send anything to test it.`, basis: "measured", evidence: { found } };
 
+  // Areas that need a person's judgement are not scored in the free report (Nathan, 23 Nov):
+  // a marketing specialist scores them in the full report. What the engine found is kept as a note.
+  const SPEC: [string, string, string][] = [
+    ["headline", "Your headline", h1 ? `Your headline reads: “${h1.slice(0, 140)}”.` : "We couldn’t find a main headline (H1) on your home page."],
+    ["offer-structure", "How clear your offer is", reads],
+    ["local-listing", "Your Google Business Profile", ""],
+  ];
+  for (const [k, what, note] of SPEC) {
+    const why = `${what} needs a person’s judgement, so it isn’t scored in the free report. A marketing specialist scores it in the full report.`;
+    checks[k] = { score: null, flaw: "Full report only", finding: why, nm: why, basis: "specialist", evidence: checks[k]?.evidence, ...(note ? { note } : {}) };
+  }
   // checks 4 and 5 are written for manufacturers: leave them out for a site that clearly isn't one
   if (sector.key !== "unknown" && sector.key !== "manufacturing") for (const k of ["spec-page", "machine-list"]) checks[k] = nm(`This check is written for manufacturers. Your site reads as ${sector.label}, so it’s left out of your score.`);
   for (const k of Object.keys(checks)) { const c = checks[k]; if (c.score != null) c.score = r1(clamp(c.score)); }

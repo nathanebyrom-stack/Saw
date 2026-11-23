@@ -68,9 +68,10 @@ await page.waitForTimeout(2000);
 assert.match(await txt(page, '#client'), /Harrowgate/); assert.ok(!(await page.locator('#drawing').isVisible()));
 assert.equal(await page.locator('#tally > div').count(), 5); assert.equal(await page.locator('article.metric').count(), 18);
 const tiredDial = Number(await txt(page, '#dialNum')); assert.ok(tiredDial > 20 && tiredDial < 45, 'tired dial ' + tiredDial);
-assert.match(await txt(page, '#m-headline'), /Welcome to our website/); assert.match(await txt(page, '#m-offer-structure'), /Doesn’t say what you offer/);
-assert.match(await txt(page, '#m-local-listing'), /Not measured/i);
-assert.match(await txt(page, '#m-local-listing .fix'), /until it’s been checked/); assert.equal(await page.locator('#m-local-listing .addfix').count(), 0);
+assert.match(await txt(page, '#m-headline'), /Welcome to our website/);   // kept as a note assert.match(await txt(page, '#m-offer-structure'), /Full report only[\s\S]*isn’t scored in the free report/i); assert.match(await txt(page, '#m-offer-structure .fix'), /marketing specialist scores this in the full report/);
+assert.match(await txt(page, '#m-headline'), /Full report only/i); assert.match(await txt(page, '#pt'), /We don’t score these in the free report/);
+assert.match(await txt(page, '#m-local-listing'), /Full report only/i);
+assert.match(await txt(page, '#m-local-listing .fix'), /marketing specialist/); assert.equal(await page.locator('#m-local-listing .addfix').count(), 0);
 assert.match(await txt(page, '#rivals'), /Harrowgate/); assert.match(await txt(page, '#cmpRows'), /Not measured/i);
 assert.match(page.url(), /[?&]r=00000000-/); assert.match(await txt(page, 'footer'), /produced automatically/);
 assert.match(await page.title(), /Harrowgate$/);
@@ -82,7 +83,7 @@ await page.locator('#m-headline').scrollIntoViewIfNeeded(); await page.screensho
 await page.locator('#compare').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + '/4-tired-compare.png' });
 // main image note and the competitor offer
 assert.match(await txt(page, '#m-hero-photo'), /Scored on resolution only/);
-assert.equal(await page.locator('#rivals form').count(), 0); assert.match(await txt(page, '#rivals'), /Order the Performance Test/);
+assert.equal(await page.locator('#rivals form').count(), 0); assert.match(await txt(page, '#rivals'), /Order the full report/);
 // order form: validation, then a clear "not taking orders yet" while paid orders are off
 await page.click('#ptOpen'); assert.equal(await page.inputValue('#ptUrl'), 'tired.test');
 await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /Add your name/);
@@ -90,7 +91,7 @@ await page.fill('#ptName', 'Sam Tester'); await page.fill('#ptEmail', 'sam@tired
 await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /both their company name and their website/);
 await page.fill('#ptCompUrl', 'rival.test'); await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /privacy notice/);
 await page.check('#ptConsent'); await page.click('#ptPay');
-await page.waitForFunction(() => /not taking Performance Test orders just yet/.test(document.getElementById('ptStatus').textContent), null, { timeout: 5000 });
+await page.waitForFunction(() => /not taking full report orders just yet/.test(document.getElementById('ptStatus').textContent), null, { timeout: 5000 });
 await page.locator('#pt').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + '/7-order.png' });
 // fix list still works on a live report
 await page.click('#addFail'); assert.ok(await page.locator('#flItems li:not(.empty)').count() >= 5);
@@ -110,17 +111,17 @@ await page.click('#runStatus [data-sample]'); await page.waitForTimeout(1800);
 assert.equal(await txt(page, '#dialNum'), '43'); assert.ok(await page.locator('#drawing').isVisible()); assert.ok(!/[?&]r=/.test(page.url()));
 assert.deepEqual(errors, [], 'no script errors (web mode)');
 
-// 6b the paid Performance Test report, opened from its private link
+// 6b the paid full report report, opened from its private link
 const full = await newPage();
 await full.page.goto(file + '?full=' + TOKEN);
-await full.page.waitForFunction(() => /reviewed by a 34 Automation designer/.test(document.getElementById('runStatus').textContent), null, { timeout: 15000 });
+await full.page.waitForFunction(() => /reviewed by a 34 Automation marketing specialist/.test(document.getElementById('runStatus').textContent), null, { timeout: 15000 });
 await full.page.waitForTimeout(1500);
 assert.match(await txt(full.page, '#designer'), /What we’d do first[\s\S]*undersells you[\s\S]*Add a quote form/);
-assert.match(await txt(full.page, '#m-hero-photo'), /6\.5[\s\S]*Designer’s note: A real photo/);
+assert.match(await txt(full.page, '#m-hero-photo'), /6\.5[\s\S]*Specialist’s note: A real photo/);
 assert.match(await txt(full.page, '#m-offer-structure'), /Says what you do, not who it is for/);
 assert.match(await txt(full.page, '#rvH'), /Compared with Calderbrook Precision/); assert.match(await txt(full.page, '#rivals'), /sharp\.test/);
 assert.equal(await full.page.locator('#pt').count(), 0); assert.ok(!(await full.page.locator('#runForm').isVisible()));
-assert.match(await txt(full.page, '.spec-tag'), /Performance Test/i);
+assert.match(await txt(full.page, '.spec-tag'), /full report/i);
 await full.page.screenshot({ path: OUT + '/8-full-top.png' });
 await full.page.locator('#designer').scrollIntoViewIfNeeded(); await full.page.screenshot({ path: OUT + '/9-full-designer.png' });
 await full.page.locator('#compare').scrollIntoViewIfNeeded(); await full.page.screenshot({ path: OUT + '/10-full-compare.png' });

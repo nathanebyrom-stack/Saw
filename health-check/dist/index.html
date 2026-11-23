@@ -42,7 +42,7 @@
       page, #compare-data and the JS; #rivals is 2 columns at >=900px (you + the slot); copy = Maya's hc-v4-3-copy.md;
       enquiryPayload().competitors stays an array, now holding at most 1. Costs JSON, verdict rule, opener, cost wording unchanged.
   v4.2 (Nova, 20 Nov 2026): intro = Nathan's option B + legend line; "Repair or replace?" verdict by the dial (#verdict, verdictOf(),
-      Ruby's Fail-count rule) + footer rule line; "Performance Test" rename; measuredLine removed from How you compare;
+      Ruby's Fail-count rule) + footer rule line; "full report" rename; measuredLine removed from How you compare;
       client-typed competitors added to the copied fix list and to enquiryPayload() (capture still off); privacy line under the slots.
       Cost wording (Nathan 18:10, "market rate"): one lead note above the checks list, short per-card label, "UK market rate:" before each figure.
   v4.1 (Nova, 20 Nov 2026): automatic top-5 local competitor list removed from "How you compare". In its place, 2 optional
@@ -672,7 +672,7 @@ body[data-bg="c"] .runbox{background:rgba(255,255,255,.3)}
    "Now -> Fixed" pictures in the area headings and stacked them in the page's top-right corner */
 .ghead .ba{position:static;margin:0}
 
-/* ---------- v5.2 · Performance Test offer and order form ---------- */
+/* ---------- v5.2 · full report offer and order form ---------- */
 .pt{padding:8px 0 0}
 .pt-card{display:grid;gap:22px;background:var(--graphite);color:#fff;border-radius:24px;padding:22px;box-shadow:0 0 0 1px rgba(201,162,76,.45)}
 @media (min-width:900px){.pt-card{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);padding:28px 30px;align-items:start}.pt-card:not(.open){grid-template-columns:1fr}}
@@ -711,6 +711,16 @@ body[data-bg="c"] .runbox{background:rgba(255,255,255,.3)}
 .pt-pri{margin:16px 0 0;padding-left:22px;display:grid;gap:8px;max-width:46em}
 .pt-pri li{font:600 15px/1.5 var(--f-body);color:#fff}
 .pt-pri li::marker{color:var(--gold);font-family:var(--f-mono)}
+.pt-cmp{display:grid;gap:14px;margin:16px 0 6px}
+@media (min-width:700px){.pt-cmp{grid-template-columns:1fr 1fr}}
+.pt-card.open .pt-cmp{grid-template-columns:1fr}
+.pt-col{border:1px solid #3A3E45;border-radius:14px;padding:14px 16px;min-width:0}
+.pt-colh{margin:0 0 8px;font:700 12px/1.2 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.pt-col .pt-list{margin:0}
+.pt-list li.no::before{width:11px;height:0;border-left:0;border-bottom:2.5px solid #8C929A;transform:none;top:11px}
+.pt-list li.no{color:#A9AFB6}
+.pt-spec{margin:12px 0 16px;max-width:52em;font:500 14px/1.55 var(--f-body);color:#D4D8DD;border-left:3px solid var(--gold);padding-left:12px}
+.pt-spec b{color:#fff}
 </style>
 </head>
 <body data-bg="a">
@@ -854,19 +864,35 @@ body[data-bg="c"] .runbox{background:rgba(255,255,255,.3)}
   <div class="wrap">
     <div class="pt-card">
       <div class="pt-copy">
-        <p class="pt-kick">Performance Test · <span id="ptPrice">£4.99</span></p>
-        <h2 id="ptH">Get a designer’s eye on it</h2>
-        <ul class="pt-list">
-          <li>A web designer checks what software can’t: your photos, your headline and how clear your offer is.</li>
-          <li>More detail on every check, with notes on what to fix first.</li>
-          <li>Your site side by side with one competitor you name.</li>
-          <li>Your full report by email within 3 working hours (Monday to Friday, 9 to 5).</li>
-        </ul>
-        <button class="btn gold" type="button" id="ptOpen">Order the Performance Test · £4.99</button>
-        <p class="pt-small">Paid securely through Stripe. This free check stays free.</p>
+        <p class="pt-kick">Full report · <span id="ptPrice">£4.99</span></p>
+        <h2 id="ptH">Get a marketing specialist’s eye on it</h2>
+        <div class="pt-cmp">
+          <div class="pt-col">
+            <p class="pt-colh">This free report</p>
+            <ul class="pt-list">
+              <li>Checks everything that can be measured from outside your site</li>
+              <li>Scores your main photo on its resolution only</li>
+              <li class="no">Doesn’t score the areas that need a marketing specialist</li>
+              <li class="no">No competitor comparison</li>
+            </ul>
+          </div>
+          <div class="pt-col">
+            <p class="pt-colh">Full report · £4.99</p>
+            <ul class="pt-list">
+              <li>Everything in the free report</li>
+              <li>A marketing specialist checks your site by eye and scores the areas the free report leaves out</li>
+              <li>More detail on every check, with notes on what to fix first</li>
+              <li>Your site side by side with one competitor you name</li>
+              <li>By email within 3 working hours (Monday to Friday, 9 to 5)</li>
+            </ul>
+          </div>
+        </div>
+        <p class="pt-spec"><b>Scored only by a marketing specialist.</b> The quality of your photos (sharpness, lighting and whether they show your real work), your headline, how clear your offer is, your Google Business Profile and how you compare with a competitor need a person’s judgement. We don’t score these in the free report.</p>
+        <button class="btn gold" type="button" id="ptOpen">Order the full report · £4.99</button>
+        <p class="pt-small">Paid securely through Stripe. This free report stays free.</p>
       </div>
       <form class="pt-form" id="ptForm" novalidate hidden>
-        <h3>Order your Performance Test</h3>
+        <h3>Order your full report</h3>
         <div class="pt-fld"><label for="ptUrl">Your website</label><input id="ptUrl" name="url" type="text" inputmode="url" autocomplete="url" spellcheck="false" autocapitalize="off" maxlength="200" placeholder="www.yourcompany.co.uk"></div>
         <div class="pt-row">
           <div class="pt-fld"><label for="ptName">Your name</label><input id="ptName" name="name" type="text" autocomplete="name" maxlength="80"></div>
@@ -2305,7 +2331,7 @@ var STATUSES = [
   {k:"pass",      label:"Pass",            min:8, max:10, c:"#1B998B", ink:"#0E0F11", tint:"#D9F3EF"}
 ];
 /* v5 · a check the engine couldn't take. Left out of every total; never a Fail (Ruby's rule for "Not measured"). */
-var NM = {k:"nm", label:"Not measured", c:"#C3C7CC", ink:"#0E0F11", tint:"#F1EFE9"};
+var NM = {k:"nm", label:"Not scored", c:"#C3C7CC", ink:"#0E0F11", tint:"#F1EFE9"};
 
 /* =====================================================================
    COPY: every new or changed string lives here.
@@ -2358,7 +2384,7 @@ var COPY = {
   copyFallback:  "Select the list below and copy it (Ctrl+C or ⌘C).",   // [Nova]
   /* v4.4 · one invitation to talk about a rebuild (tickText deleted). [Maya] 2026-11-21-hc-v4-4-copy.md §2 */
   talkHead:      "Want a site that’s built to last?",            // [Maya]
-  talkBody:      "This Health Check is free, and your fix list is yours to use with whoever you like. If you’d rather start again, 34 Automation does full rebrands and website rebuilds. Talk to us and we’ll go through your Performance Test with you.",   // [Maya]
+  talkBody:      "This Health Check is free, and your fix list is yours to use with whoever you like. If you’d rather start again, 34 Automation does full rebrands and website rebuilds. Talk to us and we’ll go through your full report with you.",   // [Maya]
   talkBtn:       "Talk to us about a rebuild",                   // [Maya]
   talkAria:      "Talk to 34 Automation about a rebrand and website rebuild",   // [Maya]
   talkNote:      "Your fix list and the competitor you’ve named go with it. See our [[privacy notice]].",   // [Maya] link: PRIVACY_URL
@@ -2389,16 +2415,16 @@ var COPY = {
   cmpInfoTitle:  "For information, not scored",                  // [Nova]
   cmpInfoShort:  "Info",                                         // [Nova]
   /* v4.1 · client-named competitor slots. [Maya] = maya-copy.md, 20 Nov 2026 (humanized + slop-gated 5/5; Quinn/Edie not yet run) */
-  cmpMethodLine: "The competitor you name is checked with you in your Performance Test, not on this page.",   // [Maya] v4.3 method line
+  cmpMethodLine: "The competitor you name is checked with you in your full report, not on this page.",   // [Maya] v4.3 method line
   rvKicker:      "Your competitor (optional)",                   // [Maya] v4.3 compare.kicker
   rvHeading:     "Who do you want to be compared with?",      // [Maya] compare.heading
-  rvIntro:       "Name one competitor you’d like to be compared with. We check them with you in your Performance Test, so on this page they show as Not measured. Leave it blank and we’ll just benchmark your own site.",   // [Maya] v4.4 ("Optional" kept once, in rvKicker)
+  rvIntro:       "Name one competitor you’d like to be compared with. We check them with you in your full report, so on this page they show as Not measured. Leave it blank and we’ll just benchmark your own site.",   // [Maya] v4.4 ("Optional" kept once, in rvKicker)
   rvSlot1:       "Competitor",                                   // [Maya] v4.4 slot label
   rvNameLabel:   "Company name",                                 // [Maya] field.name.label
   rvNamePh:      "Competitor’s company name",                    // [Maya] field.name.placeholder
   rvUrlLabel:    "Website",                                      // [Maya] field.url.label
   rvUrlPh:       "www.competitor.example",               // [Maya] field.url.placeholder
-  rvUrlHelp:     "Use their main website address. We’ll check it with you in your Performance Test.",   // [Maya] field.url.help
+  rvUrlHelp:     "Use their main website address. We’ll check it with you in your full report.",   // [Maya] field.url.help
   rvErrMissing:  "Add a company name and a website.",            // [Maya] error.missing
   rvErrUrl:      "That website address doesn’t look right. Try something like www.competitor.example",   // [Maya] error.url
   rvEmptySlot:   "No competitor added yet. Add one and they’ll show up here next to your results.",   // [Maya] v4.3 empty.slot
@@ -2418,7 +2444,7 @@ var COPY = {
   rvSummary:     "You’re ahead on {n} of {total} checks.",       // [Maya] filled.summary
   rvSampleBadge: "Sample",                                       // [Maya] sample.badge
   rvSampleMark:  "Illustrative: sample firm and scores",         // [Maya] sample.marker
-  rvSampleSlot:  "Illustrative: sample firm and scores. Measured here to show how it looks; a competitor you name shows as Not measured until your Performance Test.",   // [Nova] v4.6 (Edie: rvIntro vs sample)
+  rvSampleSlot:  "Illustrative: sample firm and scores. Measured here to show how it looks; a competitor you name shows as Not measured until your full report.",   // [Nova] v4.6 (Edie: rvIntro vs sample)
   cmpOutTitle:   "Measured from outside",                        // [Nova]
   cmpOutHelp:    "Each has a fixed, repeatable test, so these are compared.",   // [Nova]
   cmpPartTitle:  "Partly measurable",                            // [Nova]
@@ -2436,22 +2462,24 @@ var COPY = {
   v5SpecTag:     "Automatic health check",
   v5FixNone:     "Nothing to fix here.",
   v5FixNM:       "Nothing to plan until it’s been checked.",
+  v5FixPro:      "A marketing specialist scores this in the full report.",
+  v5WordPro:     "Full report only",
   v5CostNone:    "No cost. This check passes.",
   v5CostNM:      "No figure yet.",
   v5Measured:    "Measured automatically · {date} · {n} read",
   v5Auto:        "Automatic report · scoring rules awaiting review",
   v5AutoHow:     "This report was produced automatically, from outside your site. Checks marked Not measured are left out of the area scores and the overall score, and never count as a Fail."
 };
-var FULL = REPORT && REPORT.full;   /* v5.2 · the paid Performance Test: a designer's review laid over the automatic report */
+var FULL = REPORT && REPORT.full;   /* v5.2 · the paid full report: a designer's review laid over the automatic report */
 if (REPORT){
   var hcPages = (REPORT.sources || {}).pages || 1;
   COPY.specTag = COPY.v5SpecTag;
   COPY.fictional = COPY.v5Measured.replace('{date}', CLIENT.tested).replace('{n}', hcPages + (hcPages === 1 ? ' page' : ' pages'));
   COPY.prototype = COPY.v5Auto;
   if (FULL){
-    COPY.specTag = 'Performance Test';
-    COPY.fictional = 'Reviewed by a 34 Automation designer' + (FULL.delivered_at ? ' · ' + hcWhen(FULL.delivered_at) : '');
-    COPY.prototype = 'Performance Test';
+    COPY.specTag = 'Full report';
+    COPY.fictional = 'Reviewed by a 34 Automation marketing specialist' + (FULL.delivered_at ? ' · ' + hcWhen(FULL.delivered_at) : '');
+    COPY.prototype = 'Full report';
   }
 }
 
@@ -2492,7 +2520,7 @@ var M = [
   pass:"Pass: a supported platform that already runs outside scripts and has been updated in the last 12 months.",
   failLine:"Fail: the platform’s out of security support, or it’s a hand-built site nobody has touched in years.",
   nm:"We couldn’t tell what the site’s built on, so this one’s Not measured. It doesn’t count as a Fail.",
-  lockNote:"Whether an agency has the site locked down can’t be seen from outside. We check that with you in your Performance Test.",
+  lockNote:"Whether an agency has the site locked down can’t be seen from outside. We check that with you in your full report.",
   b:[556,644], t:[565,606]},
  {id:'tools-in-use', cat:'ai', name:'Chat and booking', raw:2.2, flaw:'No chat, WhatsApp or booking', fix:'Add WhatsApp chat, online booking or an AI chat assistant', finding:'There’s no chat, WhatsApp or booking. Buyers get a phone number and a “Click here to email us” link, and that’s it.',
   look:"We look at the home page on a desktop and a phone for chat, WhatsApp or booking that works. We open any widget but don’t send anything.",
@@ -2510,7 +2538,8 @@ if (REPORT) M.forEach(function(m){
   m.raw = (typeof c.score === 'number' && isFinite(c.score)) ? c.score : null;
   m.flaw = c.flaw || NM.label; m.finding = c.finding || '';
   m.nmWhy = m.raw == null ? (c.nm || c.finding || '') : '';
-  m.lockNote = c.note || (m.id === 'platform-ready' ? m.lockNote : '');   /* v5.2 · e.g. "Scored on resolution only" */
+  m.lockNote = c.note || (m.id === 'platform-ready' ? m.lockNote : '');
+  m.pro = c.basis === 'specialist';   /* v5.3 · scored by a marketing specialist in the full report only */   /* v5.2 · e.g. "Scored on resolution only" */
 });
 M.forEach(function(m){ m.score = m.raw; });   /* v4.8 · score = raw, shown with f1() */
 var WHY = {'case-studies': COPY.caseStudiesWhy};
@@ -2777,11 +2806,11 @@ function card(m){
    + '<div><p class="mcat"><i aria-hidden="true"></i>'+esc(c.name)+' · check '+m.n+'</p><h3 id="t-'+m.id+'">'+esc(m.name)+'</h3>'
    + (WHY[m.id] ? '<p class="why"><b>'+esc(COPY.whyLabel)+'</b>'+esc(WHY[m.id])+'</p>' : '')
    + '</div>'
-   + '<div class="score"><span class="pill" style="background:'+s.c+';color:'+s.ink+'">'+(s.k === 'nm' ? '–' : f1(m.score)+'<small>/10</small>')+'</span><span class="word">'+esc(s.label)+'</span><span class="meter" aria-hidden="true">'+meter+'</span></div></div>'
+   + '<div class="score"><span class="pill" style="background:'+s.c+';color:'+s.ink+'">'+(s.k === 'nm' ? '–' : f1(m.score)+'<small>/10</small>')+'</span><span class="word">'+esc(m.pro ? COPY.v5WordPro : s.label)+'</span><span class="meter" aria-hidden="true">'+meter+'</span></div></div>'
    + '<div class="ffc">'
    + '<div class="col flaw"><h4>'+IC.flaw+esc(COPY.failHead)+'</h4><p>'+esc(s.k === 'nm' && m.nmWhy ? m.nmWhy : m.flaw)+'</p></div>'
    + '<div class="arrow" aria-hidden="true">'+IC.arrow+'</div>'
-   + '<div class="col fix"><h4>'+IC.fix+esc(COPY.fixHead)+'</h4><p>'+esc(s.k === 'pass' ? COPY.v5FixNone : s.k === 'nm' ? COPY.v5FixNM : m.fix)+'</p></div>'
+   + '<div class="col fix"><h4>'+IC.fix+esc(COPY.fixHead)+'</h4><p>'+esc(s.k === 'pass' ? COPY.v5FixNone : s.k === 'nm' ? (m.pro ? COPY.v5FixPro : COPY.v5FixNM) : m.fix)+'</p></div>'
    + '<div class="arrow" aria-hidden="true">'+IC.arrow+'</div>'
    + '<div class="col cost"><h4>'+IC.cost+esc(COPY.costHead)+'</h4><p class="clabel">'+esc(COPY.costLabel)+'</p><div class="cbody">'+(s.k === 'pass' || s.k === 'nm' ? '<p class="cval pending">'+esc(s.k === 'pass' ? COPY.v5CostNone : COPY.v5CostNM)+'</p>' : costCell(m))+'</div></div>'
    + '</div>'
@@ -3035,7 +3064,7 @@ var MONO = 'IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace';
       ttfb:   {how:'Time to first byte from one fixed server, median of 3. Pass ≤ 0.8 s (web.dev).', method:'engine: fetch, median of 3'},
       mobile: {label:'Phone layout set up', yes:'Viewport set and small-screen layout rules found', no:'No viewport setting, or no small-screen layout rules found', how:'Viewport meta includes width= and the stylesheets hold small-screen rules. Sideways scroll isn’t tested automatically.', method:'HTML and CSS parse'},
       tap:    {method:'HTML parse'}, quote: {method:'HTML parse'}, upload: {method:'HTML parse'},
-      listing:{how:'Checked by hand, signed out, in your Performance Test. Information only.', method:'manual'}
+      listing:{how:'Checked by hand, signed out, in your full report. Information only.', method:'manual'}
     };
     (C.metrics || []).forEach(function(m){ var o = OV[m.id]; if (o) Object.keys(o).forEach(function(k){ m[k] = o[k]; }); });
     if (C.coverage && C.coverage.yes && C.coverage.yes.responsive != null) C.coverage.yes.responsive = 'By proxy: viewport set and small-screen layout rules found';
@@ -3448,7 +3477,7 @@ var MONO = 'IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace';
 
 render(); renderFix();
 if (location.hash && /^#m-/.test(location.hash)){ var id = location.hash.slice(3); if (byId[id]) setTimeout(function(){goTo(id);}, 50); }
-/* v5.2 · naming a competitor is part of the paid Performance Test, so the free page shows the offer in its place */
+/* v5.2 · naming a competitor is part of the paid full report, so the free page shows the offer in its place */
 (function(){
   document.querySelectorAll('#rivals .rv.slot form, #rivals .rv.slot .acts, #rvPrivacy, #rvNone, .sbs-empty').forEach(function(e){ e.remove(); });
   var k = document.querySelector('[data-copy="rvKicker"]'), h = $('rvH'), i = document.querySelector('[data-copy="rvIntro"]');
@@ -3459,18 +3488,18 @@ if (location.hash && /^#m-/.test(location.hash)){ var id = location.hash.slice(3
     var off = document.querySelector('#rivals .rv.slot.open'); if (off) off.remove();
     return;
   }
-  if (k) k.textContent = 'In the Performance Test';
+  if (k) k.textContent = 'In the full report';
   if (h) h.textContent = 'Compared with a competitor';
-  if (i) i.textContent = REPORT ? 'The Performance Test puts your site side by side with one competitor you name, across the same checks.' : 'The Performance Test puts your site side by side with one competitor you name. Here it’s a fictional firm.';
+  if (i) i.textContent = REPORT ? 'The full report puts your site side by side with one competitor you name, across the same checks.' : 'The full report puts your site side by side with one competitor you name. Here it’s a fictional firm.';
   var open = document.querySelector('#rivals .rv.slot.open');
-  if (open) open.outerHTML = '<section class="rv pt-slot" aria-label="Competitor"><p class="rv-k">Competitor · Performance Test</p><p>Name one competitor when you order and we’ll measure them on the same checks, side by side with you.</p><div class="acts"><button type="button" class="btn small gold" data-pt-open>Order the Performance Test · £4.99</button></div></section>';
+  if (open) open.outerHTML = '<section class="rv pt-slot" aria-label="Competitor"><p class="rv-k">Competitor · Full report</p><p>Name one competitor when you order and we’ll measure them on the same checks, side by side with you.</p><div class="acts"><button type="button" class="btn small gold" data-pt-open>Order the full report · £4.99</button></div></section>';
 })();
 /* v5 · a live report has no hand-drawn page to balloon, so that section steps aside; the footer says how the report was made */
-/* v5.2 · Performance Test: the designer's summary takes the offer's place, and there is nothing to re-run */
+/* v5.2 · full report: the designer's summary takes the offer's place, and there is nothing to re-run */
 if (FULL){
   var hcPt = $('pt'), hcSum = document.createElement('section');
   hcSum.className = 'pt'; hcSum.id = 'designer';
-  hcSum.innerHTML = '<div class="wrap"><div class="pt-card"><div class="pt-copy"><p class="pt-kick">Performance Test · from your designer</p><h2>What we’d do first</h2>'
+  hcSum.innerHTML = '<div class="wrap"><div class="pt-card"><div class="pt-copy"><p class="pt-kick">Full report · from your marketing specialist</p><h2>What we’d do first</h2>'
     + (FULL.summary ? '<p class="pt-sum">' + esc(FULL.summary).replace(/\n+/g, '</p><p class="pt-sum">') + '</p>' : '')
     + (FULL.priorities.length ? '<ol class="pt-pri">' + FULL.priorities.map(function(x){ return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' : '')
     + '</div></div></div>';
@@ -3567,11 +3596,11 @@ if (REPORT){
     paint();
   }
 
-  /* ---------- Performance Test order form ---------- */
+  /* ---------- full report order form ---------- */
   var O = {                                                    /* all [v5.2] */
     url: 'Add your website address.', name: 'Add your name.', email: 'Add an email address we can send your report to.',
     comp: 'For a competitor, add both their company name and their website, or leave both blank.', compUrl: 'That competitor’s website address doesn’t look right.',
-    consent: 'Please tick to agree to the privacy notice.', off: 'We’re not taking Performance Test orders just yet, so nothing has been sent or charged.',
+    consent: 'Please tick to agree to the privacy notice.', off: 'We’re not taking full report orders just yet, so nothing has been sent or charged.',
     making: 'Setting up your secure payment…', go: 'Taking you to Stripe to pay…', link: 'Continue to secure payment', failed: 'Your order couldn’t be started. Nothing has been charged. Try again in a few minutes.'
   };
   function wireOrder(report){
@@ -3752,7 +3781,7 @@ if (REPORT){
     }).then(function(report){ if (seq === runSeq) finish(report, runId); }, function(err){ if (seq === runSeq) fail(err); });
   }
 
-  /* ---------- the paid Performance Test report: the automatic report with the designer's review laid over it ---------- */
+  /* ---------- the paid full report report: the automatic report with the marketing specialist's review laid over it ---------- */
   function mergeFull(d){
     var rep = JSON.parse(JSON.stringify(d.report || {})), rv = (d.order && d.order.review) || {}, ch = rv.checks || {};
     rep.checks = rep.checks || {};
@@ -3760,7 +3789,7 @@ if (REPORT){
       var x = ch[k] || {}, c = rep.checks[k] || (rep.checks[k] = {});
       if (typeof x.score === 'number' && isFinite(x.score)) { c.score = Math.max(0, Math.min(10, Math.round(x.score * 10) / 10)); c.basis = 'designer'; }
       if (x.found) c.flaw = String(x.found);
-      c.note = x.note ? 'Designer’s note: ' + x.note : (c.basis === 'designer' ? 'Checked by a designer.' : c.note);
+      c.note = x.note ? 'Specialist’s note: ' + x.note : (c.basis === 'designer' ? 'Checked by a marketing specialist.' : c.note);
     });
     var cr = d.competitor_report, o = d.order || {};
     rep.full = { summary: rv.summary || '', priorities: (rv.priorities || []).filter(Boolean), competitorNote: rv.competitor_note || '', delivered_at: o.delivered_at,
@@ -3772,9 +3801,9 @@ if (REPORT){
     var h = /^#full-([0-9a-f]{48})$/.exec(location.hash || ''); return h ? h[1] : null;
   }
   var P = {                                                    /* [v5.2] */
-    loading: 'Loading your Performance Test…', ready: 'Your Performance Test for {d}, reviewed by a 34 Automation designer.',
-    paid: 'Payment received, thank you. Your Performance Test for {d} will be with you by email by {due}.',
-    paidSoon: 'Payment received, thank you. Your Performance Test will be with you by email within 3 working hours.',
+    loading: 'Loading your full report…', ready: 'Your full report for {d}, reviewed by a 34 Automation marketing specialist.',
+    paid: 'Payment received, thank you. Your full report for {d} will be with you by email by {due}.',
+    paidSoon: 'Payment received, thank you. Your full report will be with you by email within 3 working hours.',
     cancelled: 'Payment cancelled. Nothing has been charged.', missing: 'That report link isn’t valid, or the report isn’t ready yet.'
   };
 

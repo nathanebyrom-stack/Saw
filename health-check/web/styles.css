@@ -29,7 +29,7 @@ body[data-bg="c"] .runbox{background:rgba(255,255,255,.3)}
    "Now -> Fixed" pictures in the area headings and stacked them in the page's top-right corner */
 .ghead .ba{position:static;margin:0}
 
-/* ---------- v5.2 · Performance Test offer and order form ---------- */
+/* ---------- v5.2 · full report offer and order form ---------- */
 .pt{padding:8px 0 0}
 .pt-card{display:grid;gap:22px;background:var(--graphite);color:#fff;border-radius:24px;padding:22px;box-shadow:0 0 0 1px rgba(201,162,76,.45)}
 @media (min-width:900px){.pt-card{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);padding:28px 30px;align-items:start}.pt-card:not(.open){grid-template-columns:1fr}}
@@ -68,3 +68,13 @@ body[data-bg="c"] .runbox{background:rgba(255,255,255,.3)}
 .pt-pri{margin:16px 0 0;padding-left:22px;display:grid;gap:8px;max-width:46em}
 .pt-pri li{font:600 15px/1.5 var(--f-body);color:#fff}
 .pt-pri li::marker{color:var(--gold);font-family:var(--f-mono)}
+.pt-cmp{display:grid;gap:14px;margin:16px 0 6px}
+@media (min-width:700px){.pt-cmp{grid-template-columns:1fr 1fr}}
+.pt-card.open .pt-cmp{grid-template-columns:1fr}
+.pt-col{border:1px solid #3A3E45;border-radius:14px;padding:14px 16px;min-width:0}
+.pt-colh{margin:0 0 8px;font:700 12px/1.2 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.pt-col .pt-list{margin:0}
+.pt-list li.no::before{width:11px;height:0;border-left:0;border-bottom:2.5px solid #8C929A;transform:none;top:11px}
+.pt-list li.no{color:#A9AFB6}
+.pt-spec{margin:12px 0 16px;max-width:52em;font:500 14px/1.55 var(--f-body);color:#D4D8DD;border-left:3px solid var(--gold);padding-left:12px}
+.pt-spec b{color:#fff}

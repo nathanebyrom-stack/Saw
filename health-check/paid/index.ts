@@ -1,8 +1,8 @@
-// Supabase Edge Function "hc-order": the paid Performance Test (£4.99).
+// Supabase Edge Function "hc-order": the paid full report (£4.99).
 //   POST {url, name, email, competitor?, consent}  web order form: make the order and its Stripe checkout -> {checkout_url}
 //   POST {action:"checkout", id}                   database trigger: make the checkout for an order queued from a Claude artifact
 //   POST .../stripe                                Stripe webhook: payment confirmed -> paid, deadline set, sites queued, emails sent
-//   POST {action:"deliver", id}                    database trigger: the designer published the report -> email the customer
+//   POST {action:"deliver", id}                    database trigger: the specialist published the report -> email the customer
 //   GET  ?open                                     whether orders are being taken (asked before any personal details are sent)
 //   GET  ?status=<order id>                        thank-you page: status and deadline only, no personal details
 //   GET  ?token=<access token>                     the customer's full report, once published
@@ -61,8 +61,8 @@ async function makeCheckout(order: Row, cfg: Row): Promise<string> {
     "line_items[0][quantity]": "1",
     "line_items[0][price_data][currency]": String(cfg.currency || "gbp"),
     "line_items[0][price_data][unit_amount]": String(cfg.price_pence || 499),
-    "line_items[0][price_data][product_data][name]": "Website Performance Test",
-    "line_items[0][price_data][product_data][description]": `A designer’s review of ${bare(String(order.url))}` + (order.competitor_url ? `, compared with ${bare(String(order.competitor_url))}` : ""),
+    "line_items[0][price_data][product_data][name]": "Website full report",
+    "line_items[0][price_data][product_data][description]": `A marketing specialist’s review of ${bare(String(order.url))}` + (order.competitor_url ? `, compared with ${bare(String(order.competitor_url))}` : ""),
     customer_email: String(order.customer_email),
     client_reference_id: String(order.id),
     "metadata[order_id]": String(order.id),
@@ -104,27 +104,27 @@ async function onPaid(orderId: string, sessionId: string, amount: number) {
   const upd = await patchOrder(orderId, { status: "paid", paid_at: now.toISOString(), due_at: due.toISOString(), amount_pence: amount, stripe_session_id: sessionId }, "&status=in.(new,checkout)");
   if (!upd.length) return;   // already handled (Stripe retries) or unknown
   const o = upd[0];
-  // measure the site and the competitor straight away, so the designer starts from the automatic results
+  // measure the site and the competitor straight away, so the specialist starts from the automatic results
   const ins = await db("hc_reports", { method: "POST", headers: { prefer: "return=representation" },
     body: JSON.stringify([{ url: site(String(o.url)), source: "order" }].concat(o.competitor_url ? [{ url: site(String(o.competitor_url)), source: "order-competitor" }] : [])) });
   const reps: Row[] = ins.ok ? await ins.json() : [];
   await patchOrder(orderId, { report_id: reps[0]?.id ?? null, competitor_report_id: reps[1]?.id ?? null });
   const dueText = londonText(due), siteName = bare(String(o.url)), comp = o.competitor_url ? `${o.competitor_name} (${bare(String(o.competitor_url))})` : "";
-  await send(cfg, String(cfg.reviewer_email || ""), `New Performance Test: ${siteName}, due ${dueText}`,
-    wrap(`<p>A Performance Test has been paid for.</p><p><b>Website:</b> ${esc(siteName)}<br>${comp ? `<b>Competitor:</b> ${esc(comp)}<br>` : ""}<b>Due:</b> ${esc(dueText)}</p>${cfg.reviewer_page_url ? `<p><a href="${esc(cfg.reviewer_page_url)}">Open the reviewer screen</a></p>` : ""}`),
-    `A Performance Test has been paid for.\nWebsite: ${siteName}\n${comp ? "Competitor: " + comp + "\n" : ""}Due: ${dueText}\n${cfg.reviewer_page_url || ""}\n\nThanks, Nathan`);
-  await send(cfg, String(o.customer_email), "Your Performance Test is booked in",
-    wrap(`<p>Hi ${esc(o.customer_name)},</p><p>Thanks for ordering a Performance Test for <b>${esc(siteName)}</b>${comp ? `, compared with ${esc(comp)}` : ""}. A designer is going through it now, and your full report will be with you by <b>${esc(dueText)}</b>.</p><p>Stripe sends your payment receipt separately.</p>`),
-    `Hi ${o.customer_name},\n\nThanks for ordering a Performance Test for ${siteName}${comp ? ", compared with " + comp : ""}. A designer is going through it now, and your full report will be with you by ${dueText}.\n\nStripe sends your payment receipt separately.\n\nThanks, Nathan\n34 Automation`);
+  await send(cfg, String(cfg.reviewer_email || ""), `New full report: ${siteName}, due ${dueText}`,
+    wrap(`<p>A full report has been paid for.</p><p><b>Website:</b> ${esc(siteName)}<br>${comp ? `<b>Competitor:</b> ${esc(comp)}<br>` : ""}<b>Due:</b> ${esc(dueText)}</p>${cfg.reviewer_page_url ? `<p><a href="${esc(cfg.reviewer_page_url)}">Open the reviewer screen</a></p>` : ""}`),
+    `A full report has been paid for.\nWebsite: ${siteName}\n${comp ? "Competitor: " + comp + "\n" : ""}Due: ${dueText}\n${cfg.reviewer_page_url || ""}\n\nThanks, Nathan`);
+  await send(cfg, String(o.customer_email), "Your full report is booked in",
+    wrap(`<p>Hi ${esc(o.customer_name)},</p><p>Thanks for ordering a full report for <b>${esc(siteName)}</b>${comp ? `, compared with ${esc(comp)}` : ""}. A marketing specialist is going through it now, and your full report will be with you by <b>${esc(dueText)}</b>.</p><p>Stripe sends your payment receipt separately.</p>`),
+    `Hi ${o.customer_name},\n\nThanks for ordering a full report for ${siteName}${comp ? ", compared with " + comp : ""}. A marketing specialist is going through it now, and your full report will be with you by ${dueText}.\n\nStripe sends your payment receipt separately.\n\nThanks, Nathan\n34 Automation`);
 }
 async function onDeliver(orderId: string) {
   const cfg = await config();
   const o = (await rows("hc_orders?id=eq." + orderId + "&status=eq.delivered&delivery_emailed_at=is.null&select=*"))[0];
   if (!o) return;
   const link = String(cfg.report_page_url) + "?full=" + o.access_token, siteName = bare(String(o.url));
-  const ok = await send(cfg, String(o.customer_email), `Your Performance Test for ${siteName} is ready`,
-    wrap(`<p>Hi ${esc(o.customer_name)},</p><p>Your Performance Test for <b>${esc(siteName)}</b> is ready.</p><p><a href="${esc(link)}" style="display:inline-block;background:#C9A24C;color:#0E0F11;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700">Open your report</a></p><p>The link is private to you. Keep this email to come back to it.</p>`),
-    `Hi ${o.customer_name},\n\nYour Performance Test for ${siteName} is ready:\n${link}\n\nThe link is private to you. Keep this email to come back to it.\n\nThanks, Nathan\n34 Automation`);
+  const ok = await send(cfg, String(o.customer_email), `Your full report for ${siteName} is ready`,
+    wrap(`<p>Hi ${esc(o.customer_name)},</p><p>Your full report for <b>${esc(siteName)}</b> is ready.</p><p><a href="${esc(link)}" style="display:inline-block;background:#C9A24C;color:#0E0F11;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700">Open your report</a></p><p>The link is private to you. Keep this email to come back to it.</p>`),
+    `Hi ${o.customer_name},\n\nYour full report for ${siteName} is ready:\n${link}\n\nThe link is private to you. Keep this email to come back to it.\n\nThanks, Nathan\n34 Automation`);
   if (ok) await patchOrder(orderId, { delivery_emailed_at: new Date().toISOString() });
 }
 const background = (p: Promise<unknown>) => { const er = (globalThis as unknown as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime; if (er?.waitUntil) er.waitUntil(p); };
@@ -176,7 +176,7 @@ Deno.serve(async (req: Request) => {
       const o = (await rows("hc_orders?id=eq." + body.id + "&status=eq.new&select=*"))[0];
       if (!o) return json({ ok: false }, 404);
       const cfg = await config();
-      if (!cfg.paid_on) { await patchOrder(String(o.id), { status: "error", error: "We’re not taking Performance Test orders just yet, so nothing has been charged." }); return json({ ok: false }); }
+      if (!cfg.paid_on) { await patchOrder(String(o.id), { status: "error", error: "We’re not taking full report orders just yet, so nothing has been charged." }); return json({ ok: false }); }
       const bad = checkOrder(o); if (bad) { await patchOrder(String(o.id), { status: "error", error: bad }); return json({ ok: false }); }
       try { await makeCheckout(o, cfg); } catch (e) { console.error(e); await patchOrder(String(o.id), { status: "error", error: FAILED }); }
       return json({ ok: true });
@@ -184,7 +184,7 @@ Deno.serve(async (req: Request) => {
 
     // the web order form
     const cfg = await config();
-    if (!cfg.paid_on) return json({ error: "We’re not taking Performance Test orders just yet, so nothing has been sent or charged." }, 503);
+    if (!cfg.paid_on) return json({ error: "We’re not taking full report orders just yet, so nothing has been sent or charged." }, 503);
     if (body.consent !== true) return json({ error: "Please tick to agree to the privacy notice." }, 400);
     const comp = (body.competitor || {}) as Row;
     const order: Row = { url: bare(String(body.url || "")), customer_name: String(body.name || "").trim(), customer_email: String(body.email || "").trim(),

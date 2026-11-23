@@ -71,11 +71,11 @@
     paint();
   }
 
-  /* ---------- Performance Test order form ---------- */
+  /* ---------- full report order form ---------- */
   var O = {                                                    /* all [v5.2] */
     url: 'Add your website address.', name: 'Add your name.', email: 'Add an email address we can send your report to.',
     comp: 'For a competitor, add both their company name and their website, or leave both blank.', compUrl: 'That competitor’s website address doesn’t look right.',
-    consent: 'Please tick to agree to the privacy notice.', off: 'We’re not taking Performance Test orders just yet, so nothing has been sent or charged.',
+    consent: 'Please tick to agree to the privacy notice.', off: 'We’re not taking full report orders just yet, so nothing has been sent or charged.',
     making: 'Setting up your secure payment…', go: 'Taking you to Stripe to pay…', link: 'Continue to secure payment', failed: 'Your order couldn’t be started. Nothing has been charged. Try again in a few minutes.'
   };
   function wireOrder(report){
@@ -256,7 +256,7 @@
     }).then(function(report){ if (seq === runSeq) finish(report, runId); }, function(err){ if (seq === runSeq) fail(err); });
   }
 
-  /* ---------- the paid Performance Test report: the automatic report with the designer's review laid over it ---------- */
+  /* ---------- the paid full report report: the automatic report with the marketing specialist's review laid over it ---------- */
   function mergeFull(d){
     var rep = JSON.parse(JSON.stringify(d.report || {})), rv = (d.order && d.order.review) || {}, ch = rv.checks || {};
     rep.checks = rep.checks || {};
@@ -264,7 +264,7 @@
       var x = ch[k] || {}, c = rep.checks[k] || (rep.checks[k] = {});
       if (typeof x.score === 'number' && isFinite(x.score)) { c.score = Math.max(0, Math.min(10, Math.round(x.score * 10) / 10)); c.basis = 'designer'; }
       if (x.found) c.flaw = String(x.found);
-      c.note = x.note ? 'Designer’s note: ' + x.note : (c.basis === 'designer' ? 'Checked by a designer.' : c.note);
+      c.note = x.note ? 'Specialist’s note: ' + x.note : (c.basis === 'designer' ? 'Checked by a marketing specialist.' : c.note);
     });
     var cr = d.competitor_report, o = d.order || {};
     rep.full = { summary: rv.summary || '', priorities: (rv.priorities || []).filter(Boolean), competitorNote: rv.competitor_note || '', delivered_at: o.delivered_at,
@@ -276,9 +276,9 @@
     var h = /^#full-([0-9a-f]{48})$/.exec(location.hash || ''); return h ? h[1] : null;
   }
   var P = {                                                    /* [v5.2] */
-    loading: 'Loading your Performance Test…', ready: 'Your Performance Test for {d}, reviewed by a 34 Automation designer.',
-    paid: 'Payment received, thank you. Your Performance Test for {d} will be with you by email by {due}.',
-    paidSoon: 'Payment received, thank you. Your Performance Test will be with you by email within 3 working hours.',
+    loading: 'Loading your full report…', ready: 'Your full report for {d}, reviewed by a 34 Automation marketing specialist.',
+    paid: 'Payment received, thank you. Your full report for {d} will be with you by email by {due}.',
+    paidSoon: 'Payment received, thank you. Your full report will be with you by email within 3 working hours.',
     cancelled: 'Payment cancelled. Nothing has been charged.', missing: 'That report link isn’t valid, or the report isn’t ready yet.'
   };
 

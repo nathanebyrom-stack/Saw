@@ -1,4 +1,4 @@
-// Working hours for the Performance Test promise: Monday to Friday, 9:00 to 17:00, UK time.
+// Working hours for the full report promise: Monday to Friday, 9:00 to 17:00, UK time.
 // Bank holidays are not counted as closed (yet).
 const OPEN = 9 * 60, CLOSE = 17 * 60;
 

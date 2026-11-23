@@ -48,29 +48,31 @@ rep('nm status', '  {k:"pass",      label:"Pass",            min:8, max:10, c:"#
 `  {k:"pass",      label:"Pass",            min:8, max:10, c:"#1B998B", ink:"#0E0F11", tint:"#D9F3EF"}
 ];
 /* v5 · a check the engine couldn't take. Left out of every total; never a Fail (Ruby's rule for "Not measured"). */
-var NM = {k:"nm", label:"Not measured", c:"#C3C7CC", ink:"#0E0F11", tint:"#F1EFE9"};`);
+var NM = {k:"nm", label:"Not scored", c:"#C3C7CC", ink:"#0E0F11", tint:"#F1EFE9"};`);
 rep('copy', '  prototype:     "Prototype · not yet reviewed for publication"\n};',
 `  prototype:     "Prototype · not yet reviewed for publication",
   /* [v5] new for live reports. Not yet through Maya, Edie or Quinn. */
   v5SpecTag:     "Automatic health check",
   v5FixNone:     "Nothing to fix here.",
   v5FixNM:       "Nothing to plan until it’s been checked.",
+  v5FixPro:      "A marketing specialist scores this in the full report.",
+  v5WordPro:     "Full report only",
   v5CostNone:    "No cost. This check passes.",
   v5CostNM:      "No figure yet.",
   v5Measured:    "Measured automatically · {date} · {n} read",
   v5Auto:        "Automatic report · scoring rules awaiting review",
   v5AutoHow:     "This report was produced automatically, from outside your site. Checks marked Not measured are left out of the area scores and the overall score, and never count as a Fail."
 };
-var FULL = REPORT && REPORT.full;   /* v5.2 · the paid Performance Test: a designer's review laid over the automatic report */
+var FULL = REPORT && REPORT.full;   /* v5.2 · the paid full report: a designer's review laid over the automatic report */
 if (REPORT){
   var hcPages = (REPORT.sources || {}).pages || 1;
   COPY.specTag = COPY.v5SpecTag;
   COPY.fictional = COPY.v5Measured.replace('{date}', CLIENT.tested).replace('{n}', hcPages + (hcPages === 1 ? ' page' : ' pages'));
   COPY.prototype = COPY.v5Auto;
   if (FULL){
-    COPY.specTag = 'Performance Test';
-    COPY.fictional = 'Reviewed by a 34 Automation designer' + (FULL.delivered_at ? ' · ' + hcWhen(FULL.delivered_at) : '');
-    COPY.prototype = 'Performance Test';
+    COPY.specTag = 'Full report';
+    COPY.fictional = 'Reviewed by a 34 Automation marketing specialist' + (FULL.delivered_at ? ' · ' + hcWhen(FULL.delivered_at) : '');
+    COPY.prototype = 'Full report';
   }
 }`);
 rep('scores', 'M.forEach(function(m){ m.score = m.raw; });',
@@ -79,7 +81,8 @@ rep('scores', 'M.forEach(function(m){ m.score = m.raw; });',
   m.raw = (typeof c.score === 'number' && isFinite(c.score)) ? c.score : null;
   m.flaw = c.flaw || NM.label; m.finding = c.finding || '';
   m.nmWhy = m.raw == null ? (c.nm || c.finding || '') : '';
-  m.lockNote = c.note || (m.id === 'platform-ready' ? m.lockNote : '');   /* v5.2 · e.g. "Scored on resolution only" */
+  m.lockNote = c.note || (m.id === 'platform-ready' ? m.lockNote : '');
+  m.pro = c.basis === 'specialist';   /* v5.3 · scored by a marketing specialist in the full report only */   /* v5.2 · e.g. "Scored on resolution only" */
 });
 M.forEach(function(m){ m.score = m.raw; });`);
 rep('status lookup', 'var stById = {}; STATUSES.forEach(function(s){stById[s.k]=s;});',
@@ -100,7 +103,8 @@ rep('status chips', `data-status="all" aria-pressed="true">All</button>' + STATU
 rep('group score', `<span class="gsc">'+s+' / 100 · '+g.length+`, `<span class="gsc">'+(s == null ? esc(NM.label) : s+' / 100')+' · '+g.length+`);
 rep('card pill', `'+f1(m.score)+'<small>/10</small></span><span class="word">'`, `'+(s.k === 'nm' ? '–' : f1(m.score)+'<small>/10</small>')+'</span><span class="word">'`);
 rep('card found', `<p>'+esc(m.flaw)+'</p></div>`, `<p>'+esc(s.k === 'nm' && m.nmWhy ? m.nmWhy : m.flaw)+'</p></div>`);
-rep('card fix', `<p>'+esc(m.fix)+'</p></div>`, `<p>'+esc(s.k === 'pass' ? COPY.v5FixNone : s.k === 'nm' ? COPY.v5FixNM : m.fix)+'</p></div>`);
+rep('card fix', `<p>'+esc(m.fix)+'</p></div>`, `<p>'+esc(s.k === 'pass' ? COPY.v5FixNone : s.k === 'nm' ? (m.pro ? COPY.v5FixPro : COPY.v5FixNM) : m.fix)+'</p></div>`);
+rep('card word', `<span class="word">'+esc(s.label)+'</span>`, `<span class="word">'+esc(m.pro ? COPY.v5WordPro : s.label)+'</span>`);
 rep('card cost', `<div class="cbody">'+costCell(m)+'</div>`, `<div class="cbody">'+(s.k === 'pass' || s.k === 'nm' ? '<p class="cval pending">'+esc(s.k === 'pass' ? COPY.v5CostNone : COPY.v5CostNM)+'</p>' : costCell(m))+'</div>`);
 rep('card pick open', `   + '<label class="addfix"><input type="checkbox" data-pick="'`, `   + (s.k === 'pass' || s.k === 'nm' ? '' : '<label class="addfix"><input type="checkbox" data-pick="'`);
 rep('card pick close', `'+esc(COPY.quoteAdded)+'</span></label>'`, `'+esc(COPY.quoteAdded)+'</span></label>')`);
@@ -118,7 +122,7 @@ rep('compare data', "  try { C = JSON.parse($('compare-data').textContent); } ca
       ttfb:   {how:'Time to first byte from one fixed server, median of 3. Pass ≤ 0.8 s (web.dev).', method:'engine: fetch, median of 3'},
       mobile: {label:'Phone layout set up', yes:'Viewport set and small-screen layout rules found', no:'No viewport setting, or no small-screen layout rules found', how:'Viewport meta includes width= and the stylesheets hold small-screen rules. Sideways scroll isn’t tested automatically.', method:'HTML and CSS parse'},
       tap:    {method:'HTML parse'}, quote: {method:'HTML parse'}, upload: {method:'HTML parse'},
-      listing:{how:'Checked by hand, signed out, in your Performance Test. Information only.', method:'manual'}
+      listing:{how:'Checked by hand, signed out, in your full report. Information only.', method:'manual'}
     };
     (C.metrics || []).forEach(function(m){ var o = OV[m.id]; if (o) Object.keys(o).forEach(function(k){ m[k] = o[k]; }); });
     if (C.coverage && C.coverage.yes && C.coverage.yes.responsive != null) C.coverage.yes.responsive = 'By proxy: viewport set and small-screen layout rules found';
@@ -126,7 +130,7 @@ rep('compare data', "  try { C = JSON.parse($('compare-data').textContent); } ca
 rep('boot close',
   "if (location.hash && /^#m-/.test(location.hash)){ var id = location.hash.slice(3); if (byId[id]) setTimeout(function(){goTo(id);}, 50); }\n})();\n</script>",
 `if (location.hash && /^#m-/.test(location.hash)){ var id = location.hash.slice(3); if (byId[id]) setTimeout(function(){goTo(id);}, 50); }
-/* v5.2 · naming a competitor is part of the paid Performance Test, so the free page shows the offer in its place */
+/* v5.2 · naming a competitor is part of the paid full report, so the free page shows the offer in its place */
 (function(){
   document.querySelectorAll('#rivals .rv.slot form, #rivals .rv.slot .acts, #rvPrivacy, #rvNone, .sbs-empty').forEach(function(e){ e.remove(); });
   var k = document.querySelector('[data-copy="rvKicker"]'), h = $('rvH'), i = document.querySelector('[data-copy="rvIntro"]');
@@ -137,18 +141,18 @@ rep('boot close',
     var off = document.querySelector('#rivals .rv.slot.open'); if (off) off.remove();
     return;
   }
-  if (k) k.textContent = 'In the Performance Test';
+  if (k) k.textContent = 'In the full report';
   if (h) h.textContent = 'Compared with a competitor';
-  if (i) i.textContent = REPORT ? 'The Performance Test puts your site side by side with one competitor you name, across the same checks.' : 'The Performance Test puts your site side by side with one competitor you name. Here it’s a fictional firm.';
+  if (i) i.textContent = REPORT ? 'The full report puts your site side by side with one competitor you name, across the same checks.' : 'The full report puts your site side by side with one competitor you name. Here it’s a fictional firm.';
   var open = document.querySelector('#rivals .rv.slot.open');
-  if (open) open.outerHTML = '<section class="rv pt-slot" aria-label="Competitor"><p class="rv-k">Competitor · Performance Test</p><p>Name one competitor when you order and we’ll measure them on the same checks, side by side with you.</p><div class="acts"><button type="button" class="btn small gold" data-pt-open>Order the Performance Test · £4.99</button></div></section>';
+  if (open) open.outerHTML = '<section class="rv pt-slot" aria-label="Competitor"><p class="rv-k">Competitor · Full report</p><p>Name one competitor when you order and we’ll measure them on the same checks, side by side with you.</p><div class="acts"><button type="button" class="btn small gold" data-pt-open>Order the full report · £4.99</button></div></section>';
 })();
 /* v5 · a live report has no hand-drawn page to balloon, so that section steps aside; the footer says how the report was made */
-/* v5.2 · Performance Test: the designer's summary takes the offer's place, and there is nothing to re-run */
+/* v5.2 · full report: the designer's summary takes the offer's place, and there is nothing to re-run */
 if (FULL){
   var hcPt = $('pt'), hcSum = document.createElement('section');
   hcSum.className = 'pt'; hcSum.id = 'designer';
-  hcSum.innerHTML = '<div class="wrap"><div class="pt-card"><div class="pt-copy"><p class="pt-kick">Performance Test · from your designer</p><h2>What we’d do first</h2>'
+  hcSum.innerHTML = '<div class="wrap"><div class="pt-card"><div class="pt-copy"><p class="pt-kick">Full report · from your marketing specialist</p><h2>What we’d do first</h2>'
     + (FULL.summary ? '<p class="pt-sum">' + esc(FULL.summary).replace(/\\n+/g, '</p><p class="pt-sum">') + '</p>' : '')
     + (FULL.priorities.length ? '<ol class="pt-pri">' + FULL.priorities.map(function(x){ return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' : '')
     + '</div></div></div>';
@@ -174,7 +178,34 @@ if (REPORT){
 }
 ${read('web/controller.js')}</script>`);
 
+// the paid report is called the full report (Nathan, 23 Nov); the prototype's own copy still says Performance Test
+s = s.replace(/your Performance Test/g, 'your full report').replace(/Performance Test/g, 'full report');
 for (const m of s.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);   // fail the build on a script that doesn't parse
 mkdirSync(join(here, 'dist'), { recursive: true });
 writeFileSync(join(here, 'dist/index.html'), s);
+
+/* ---- site build: 34automation.co.uk/health-check/ ----
+   The site's CSP allows only its own scripts and fonts: the page script moves to app.js and the
+   Google Fonts link becomes @font-face rules on the site's self-hosted files. The JSON data blocks stay
+   inline (never executed). {{BUILD}} is filled by the site's own build. */
+{
+  let page = s;
+  const FONTS = '<style>'
+    + '@font-face{font-family:"Archivo";font-style:normal;font-weight:100 900;font-stretch:62% 125%;font-display:swap;src:url(/fonts/archivo-var.woff2) format("woff2-variations"),url(/fonts/archivo-var.woff2) format("woff2")}'
+    + [400, 500, 600].map((w) => '@font-face{font-family:"IBM Plex Sans";font-style:normal;font-weight:' + w + ';font-display:swap;src:url(/fonts/plex-sans-' + w + '.woff2) format("woff2")}').join('')
+    + [400, 500].map((w) => '@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:' + w + ';font-display:swap;src:url(/fonts/plex-mono-' + w + '.woff2) format("woff2")}').join('')
+    + '</style>';
+  page = page.replace(/<link rel="preconnect"[^>]*>\s*/g, '');
+  const gf = page.match(/<link href="https:\/\/fonts\.googleapis\.com[^>]*>/g) || [];
+  if (gf.length !== 1) throw new Error('site build: expected one Google Fonts link, found ' + gf.length);
+  page = page.replace(gf[0], FONTS);
+  const scripts = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+  if (scripts.length !== 1 || !/function hcBoot/.test(scripts[0][1])) throw new Error('site build: expected the one page script');
+  page = page.replace(scripts[0][0], () => '<script src="/health-check/app.js?v={{BUILD}}" defer></script>');
+  page = page.replace('<title>Website Health Check</title>', '<title>Website Health Check | 34 Automation</title>');
+  mkdirSync(join(here, 'dist/site/health-check'), { recursive: true });
+  writeFileSync(join(here, 'dist/site/health-check/index.html'), page);
+  writeFileSync(join(here, 'dist/site/health-check/app.js'), scripts[0][1]);
+  console.log('built dist/site/health-check/ (index.html + app.js)');
+}
 console.log('built dist/index.html', (s.length / 1024).toFixed(0) + ' KB');
