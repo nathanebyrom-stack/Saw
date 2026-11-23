@@ -68,6 +68,7 @@
     if (inp) inp.addEventListener('input', function(){ ui.value = inp.value; if (ui.err){ ui.err = false; inp.removeAttribute('aria-invalid'); } });
     if (st) st.addEventListener('click', function(e){ if (!e.target.closest('[data-sample]')) return; setRef(null); ui.value = ''; ui.text = T.sample; ui.err = false; ui.link = false; mount(null); });
     wireOrder(report);
+    wireMail(report);
     paint();
   }
 
@@ -78,6 +79,13 @@
     consent: 'Please tick to agree to the privacy notice.', off: 'We’re not taking full report orders just yet, so nothing has been sent or charged.',
     making: 'Setting up your secure payment…', go: 'Taking you to Stripe to pay…', link: 'Continue to secure payment', failed: 'Your order couldn’t be started. Nothing has been charged. Try again in a few minutes.'
   };
+  /* the full report is asked for by email (Nathan, 23 Nov): fill in the website that was just checked */
+  function wireMail(report){
+    var site = (report && report.domain) || (okUrl(ui.value) ? bare(ui.value) : '');
+    var href = 'mailto:jenny@34automation.co.uk?subject=' + encodeURIComponent('Full report request' + (site ? ': ' + site : ''))
+      + '&body=' + encodeURIComponent('Website: ' + site + '\nCompetitor to compare with (optional): ');
+    document.querySelectorAll('[data-pt-mail]').forEach(function(a){ a.setAttribute('href', href); });
+  }
   function wireOrder(report){
     var card = document.querySelector('.pt-card'), f = $('ptForm'); if (!card || !f) return;
     var err = $('ptErr'), st = $('ptStatus'), pay = $('ptPay');

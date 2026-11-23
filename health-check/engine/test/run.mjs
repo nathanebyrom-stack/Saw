@@ -9,12 +9,12 @@ const sharp = await audit('http://127.0.0.1:4802/', { allowLocal: true, now, tim
 const show = (r) => { console.log('\n' + r.name, '·', r.pages.length, 'pages'); for (const [k, c] of Object.entries(r.checks)) console.log(' ', k.padEnd(16), String(c.score ?? 'NM').padStart(4), ' ', c.flaw); };
 show(tired); show(sharp);
 const t = tired.checks, s = sharp.checks;
-assert.equal(t['headline'].score, null); assert.equal(t['headline'].basis, 'specialist'); assert.match(t['headline'].note, /Welcome to our website/); assert.ok(t["image-weight"].score <= 3.5, "tired page is heavy");
+for (const k of ['headline', 'offer-structure', 'local-listing']) assert.ok(!(k in t), k + ' is left out of the free report'); assert.equal(Object.keys(t).length, 15); assert.match(tired.forSpecialist.headline, /Welcome to our website/); assert.ok(t["image-weight"].score <= 3.5, "tired page is heavy");
 assert.equal(t['tap-to-call'].score, 5.0); assert.equal(t['responsive'].score, 2.5); assert.equal(t['quote-form'].score, 3.5);
 assert.equal(t['case-studies'].score, 1.5); assert.equal(t['certs'].score, 6.5); assert.equal(t['titles-meta'].score, 3.0);
 assert.ok(t['platform-ready'].score < 4, 'Drupal 7 fails'); assert.equal(t['tools-in-use'].score, 2.0);
-assert.equal(t['offer-structure'].score, null); assert.equal(t['local-listing'].score, null);
-assert.equal(s['headline'].score, null); assert.equal(s['tap-to-call'].score, 9.0); assert.equal(s['responsive'].score, 8.0);
+
+assert.ok(!('headline' in s)); assert.equal(s['tap-to-call'].score, 9.0); assert.equal(s['responsive'].score, 8.0);
 assert.equal(s['quote-form'].score, 9.0); assert.equal(s['reply-promise'].score, 8.0); assert.equal(s['case-studies'].score, 8.5);
 assert.equal(s['certs'].score, 9.0); assert.equal(s['titles-meta'].score, 9.0); assert.equal(s['spec-page'].score, 8.0);
 assert.equal(s['machine-list'].score, 7.5); assert.ok(s['platform-ready'].score >= 8, 'current WordPress passes'); assert.equal(s['tools-in-use'].score, 9.0);
@@ -32,13 +32,13 @@ assert.equal(one.checks['platform-ready'].score, 7.5); assert.match(one.checks['
 assert.match(one.checks['platform-ready'].finding, /security settings/);
 
 assert.equal(one.sector.key, 'agency'); assert.equal(one.checks['spec-page'].score, null); assert.equal(one.checks['machine-list'].score, null);
-assert.equal(one.checks['offer-structure'].score, null); assert.match(one.checks['offer-structure'].note, /digital or marketing agency, for UK engineering firms/); assert.match(one.checks['offer-structure'].finding, /marketing specialist scores it in the full report/);
-assert.equal(sharp.sector.key, 'manufacturing'); assert.equal(s['spec-page'].score, 8.0); assert.equal(s['offer-structure'].score, null);
+assert.match(one.forSpecialist.offer, /digital or marketing agency, for UK engineering firms/); assert.ok(!('offer-structure' in one.checks));
+assert.equal(sharp.sector.key, 'manufacturing'); assert.equal(s['spec-page'].score, 8.0);
 c.close();
 // main image, scored on resolution only
 assert.equal(t['hero-photo'].score, 3.0); assert.match(t['hero-photo'].flaw, /1,024 × 640 px/); assert.match(t['hero-photo'].note, /resolution only/);
 assert.equal(s['hero-photo'].score, 9.0); assert.match(s['hero-photo'].flaw, /2,560 ×/);
 assert.equal(one.checks['hero-photo'].score, 8.0); assert.equal(one.checks['hero-photo'].evidence.found, 'hero video'); assert.match(one.checks['hero-photo'].finding, /opens with a video, 1,920 × 1,080 px\. Its still frame.*1,440 px wide/);
-assert.match(one.checks['offer-structure'].note, /reads as a digital or marketing agency/i);
+assert.match(one.forSpecialist.offer, /reads as a digital or marketing agency/i);
 console.log('\nALL ENGINE TESTS PASSED');
 a.close(); b.close();

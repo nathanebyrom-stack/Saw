@@ -1,13 +1,15 @@
 // Website Health Check engine. Web-standard APIs only (fetch, URL, AbortController),
 // so the same file runs in a Supabase Edge Function (Deno) and under Node 22 for tests.
-// It measures a site from outside and returns one report: 18 checks scored 0-10 (or
+// It measures a site from outside and returns one report: 15 checks scored 0-10 (or
 // null = Not measured) plus the raw comparison measures the report page draws.
 //
 // The scoring rules below are a first draft written for the automated build. They have
 // NOT been reviewed by Ruby or Leo. Every threshold lives in RUBRIC so it can be tuned
 // in one place.
 
-export const ENGINE_VERSION = "1.3.0";
+export const ENGINE_VERSION = "1.4.0";
+// Judged by a marketing specialist in the full report; never part of the free report.
+export const SPECIALIST_ONLY = ["headline", "offer-structure", "local-listing"];
 
 export interface Options {
   allowLocal?: boolean;        // tests only: lets the engine fetch localhost
@@ -779,17 +781,11 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
     ? { score: RUBRIC.tools.none, flaw: "No chat, WhatsApp or booking found", finding: "No chat, WhatsApp or booking was found in the page code. Buyers get a phone number or an email link, and that’s it.", basis: "measured" }
     : { score: kinds > 1 ? RUBRIC.tools.several : RUBRIC.tools.one, flaw: `${found.slice(0, 3).join(", ")} found`, finding: `${found.join(", ")} found in the page code. We don’t send anything to test it.`, basis: "measured", evidence: { found } };
 
-  // Areas that need a person's judgement are not scored in the free report (Nathan, 23 Nov):
-  // a marketing specialist scores them in the full report. What the engine found is kept as a note.
-  const SPEC: [string, string, string][] = [
-    ["headline", "Your headline", h1 ? `Your headline reads: “${h1.slice(0, 140)}”.` : "We couldn’t find a main headline (H1) on your home page."],
-    ["offer-structure", "How clear your offer is", reads],
-    ["local-listing", "Your Google Business Profile", ""],
-  ];
-  for (const [k, what, note] of SPEC) {
-    const why = `${what} needs a person’s judgement, so it isn’t scored in the free report. A marketing specialist scores it in the full report.`;
-    checks[k] = { score: null, flaw: "Full report only", finding: why, nm: why, basis: "specialist", evidence: checks[k]?.evidence, ...(note ? { note } : {}) };
-  }
+  // Areas that need a person's judgement are left out of the free report altogether (Nathan, 23 Nov):
+  // headline, offer clarity and Google Business Profile. The free report is 15 checks across 8 areas.
+  // What the engine read is kept for the marketing specialist who writes a full report.
+  const forSpecialist = { headline: h1 ? h1.slice(0, 140) : null, offer: reads };
+  for (const k of SPECIALIST_ONLY) delete checks[k];
   // checks 4 and 5 are written for manufacturers: leave them out for a site that clearly isn't one
   if (sector.key !== "unknown" && sector.key !== "manufacturing") for (const k of ["spec-page", "machine-list"]) checks[k] = nm(`This check is written for manufacturers. Your site reads as ${sector.label}, so it’s left out of your score.`);
   for (const k of Object.keys(checks)) { const c = checks[k]; if (c.score != null) c.score = r1(clamp(c.score)); }
@@ -802,6 +798,6 @@ export async function audit(input: string, opts: Options = {}): Promise<Report> 
     url: home.url, domain: new URL(home.url).hostname.replace(/^www\./, ""), name: guessName.slice(0, 80),
     tested: now.toISOString(), sources: { psi: !!p, pages: pages.length },
     checks, values, pages: pages.map((pg) => ({ url: pg.url, status: pg.status, title: pg.title.slice(0, 120) })),
-    screenshot: p?.screenshot, notes, sector,
+    screenshot: p?.screenshot, notes, sector, forSpecialist,
   };
 }

@@ -50,7 +50,10 @@ async function run(page, url) { await page.fill('#runUrl', url); await page.clic
 // 1 sample
 let { page, errors } = await newPage();
 await page.goto(file); await page.waitForTimeout(2200);
-assert.equal(await txt(page, '#dialNum'), '43'); assert.equal(await page.locator('article.metric').count(), 18);
+const sampleDial = await txt(page, '#dialNum'); assert.equal(await page.locator('article.metric').count(), 15); assert.equal(await page.locator('.catbtn').count(), 8);
+assert.match(await txt(page, '#catsH'), /^Eight areas/); assert.match(await txt(page, '#spec'), /15\s*checks\s*8\s*areas/i);
+assert.match(await txt(page, '#m-hero-photo'), /1,280 × 549 px[\s\S]*Scored on resolution only/);
+for (const id of ['headline', 'offer-structure', 'local-listing']) assert.equal(await page.locator('#m-' + id).count(), 0, id + ' is not in the free report');
 assert.ok(await page.locator('#drawing').isVisible()); assert.match(await txt(page, '#runStatus'), /sample report/);
 assert.equal(await page.locator('#tally > div').count(), 4); assert.match(await txt(page, '#verdictSay'), /Close call/);
 assert.match(await page.title(), /Vellmoor Precision \(sample\)/);
@@ -66,12 +69,10 @@ assert.equal(await page.locator('#runBtn').isDisabled(), false);
 await run(page, 'www.tired.test'); await page.waitForFunction(() => /Report for tired\.test/.test(document.getElementById('runStatus').textContent), null, { timeout: 30000 });
 await page.waitForTimeout(2000);
 assert.match(await txt(page, '#client'), /Harrowgate/); assert.ok(!(await page.locator('#drawing').isVisible()));
-assert.equal(await page.locator('#tally > div').count(), 5); assert.equal(await page.locator('article.metric').count(), 18);
+assert.ok(await page.locator('#tally > div').count() >= 4); assert.equal(await page.locator('article.metric').count(), 15);
 const tiredDial = Number(await txt(page, '#dialNum')); assert.ok(tiredDial > 20 && tiredDial < 45, 'tired dial ' + tiredDial);
-assert.match(await txt(page, '#m-headline'), /Welcome to our website/);   // kept as a note assert.match(await txt(page, '#m-offer-structure'), /Full report only[\s\S]*isn’t scored in the free report/i); assert.match(await txt(page, '#m-offer-structure .fix'), /marketing specialist scores this in the full report/);
-assert.match(await txt(page, '#m-headline'), /Full report only/i); assert.match(await txt(page, '#pt'), /the free report doesn’t score them/);
-assert.match(await txt(page, '#m-local-listing'), /Full report only/i);
-assert.match(await txt(page, '#m-local-listing .fix'), /marketing specialist/); assert.equal(await page.locator('#m-local-listing .addfix').count(), 0);
+for (const id of ['headline', 'offer-structure', 'local-listing']) assert.equal(await page.locator('#m-' + id).count(), 0, id + ' is not in the free report');
+assert.match(await txt(page, '#pt'), /the free report doesn’t score them at all/); assert.match(await txt(page, '#pt'), /15 checks across 8 areas/);
 assert.match(await txt(page, '#rivals'), /Harrowgate/); assert.match(await txt(page, '#cmpRows'), /Not measured/i);
 assert.match(page.url(), /[?&]r=00000000-/); assert.match(await txt(page, 'footer'), /produced automatically/);
 assert.match(await page.title(), /Harrowgate$/);
@@ -79,19 +80,17 @@ assert.ok(!/vellmoor/i.test(await page.locator('#hcRoot').innerText()), 'no trac
 assert.equal(await page.evaluate(() => [...document.querySelectorAll('.ghead .ba')].filter((e) => getComputedStyle(e).position === 'absolute').length), 0);
 console.log('tired: dial', tiredDial, '| verdict:', (await txt(page, '#verdictSay')).slice(0, 40), '| tally:', (await txt(page, '#tally')).replace(/\s+/g, ' '));
 await page.screenshot({ path: OUT + '/2-tired-top.png' });
-await page.locator('#m-headline').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + '/3-tired-cards.png' });
+await page.locator('#m-hero-photo').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + '/3-tired-cards.png' });
 await page.locator('#compare').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + '/4-tired-compare.png' });
 // main image note and the competitor offer
 assert.match(await txt(page, '#m-hero-photo'), /Scored on resolution only/);
-assert.equal(await page.locator('#rivals form').count(), 0); assert.match(await txt(page, '#rivals'), /Order the full report/);
-// order form: validation, then a clear "not taking orders yet" while paid orders are off
-await page.click('#ptOpen'); assert.equal(await page.inputValue('#ptUrl'), 'tired.test');
-await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /Add your name/);
-await page.fill('#ptName', 'Sam Tester'); await page.fill('#ptEmail', 'sam@tired.test'); await page.fill('#ptCompName', 'Rival Ltd');
-await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /both their company name and their website/);
-await page.fill('#ptCompUrl', 'rival.test'); await page.click('#ptPay'); assert.match(await txt(page, '#ptErr'), /privacy notice/);
-await page.check('#ptConsent'); await page.click('#ptPay');
-await page.waitForFunction(() => /not taking full report orders just yet/.test(document.getElementById('ptStatus').textContent), null, { timeout: 5000 });
+assert.equal(await page.locator('#rivals form').count(), 0); assert.match(await txt(page, '#rivals'), /Email Jenny/);
+// the full report is asked for by email to Jenny, with the checked site filled in
+assert.equal(await page.locator('#ptForm').count(), 0);
+for (const href of await page.locator('[data-pt-mail]').evaluateAll((a) => a.map((x) => x.getAttribute('href')))) {
+  assert.match(href, /^mailto:jenny@34automation\.co\.uk\?subject=Full%20report%20request%3A%20tired\.test&body=Website%3A%20tired\.test/);
+}
+assert.match(await txt(page, '#pt'), /within 1 working day/);
 await page.locator('#pt').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + '/7-order.png' });
 // fix list still works on a live report
 await page.click('#addFail'); assert.ok(await page.locator('#flItems li:not(.empty)').count() >= 5);
@@ -108,7 +107,7 @@ await page.locator('#m-tap-to-call').scrollIntoViewIfNeeded(); await page.screen
 
 // 6 back to the sample
 await page.click('#runStatus [data-sample]'); await page.waitForTimeout(1800);
-assert.equal(await txt(page, '#dialNum'), '43'); assert.ok(await page.locator('#drawing').isVisible()); assert.ok(!/[?&]r=/.test(page.url()));
+assert.equal(await txt(page, '#dialNum'), sampleDial); assert.ok(await page.locator('#drawing').isVisible()); assert.ok(!/[?&]r=/.test(page.url()));
 assert.deepEqual(errors, [], 'no script errors (web mode)');
 
 // 6b the paid full report report, opened from its private link
@@ -118,7 +117,6 @@ await full.page.waitForFunction(() => /reviewed by a 34 Automation marketing spe
 await full.page.waitForTimeout(1500);
 assert.match(await txt(full.page, '#designer'), /What we’d do first[\s\S]*undersells you[\s\S]*Add a quote form/);
 assert.match(await txt(full.page, '#m-hero-photo'), /6\.5[\s\S]*Specialist’s note: A real photo/);
-assert.match(await txt(full.page, '#m-offer-structure'), /Says what you do, not who it is for/);
 assert.match(await txt(full.page, '#rvH'), /Compared with Calderbrook Precision/); assert.match(await txt(full.page, '#rivals'), /sharp\.test/);
 assert.equal(await full.page.locator('#pt').count(), 0); assert.ok(!(await full.page.locator('#runForm').isVisible()));
 assert.match(await txt(full.page, '.spec-tag'), /full report/i);

@@ -76,7 +76,19 @@ if (REPORT){
   }
 }`);
 rep('scores', 'M.forEach(function(m){ m.score = m.raw; });',
-`if (REPORT) M.forEach(function(m){
+`/* v5.4 · the free report leaves out what needs a person's judgement (Nathan, 23 Nov): headline, offer clarity and
+   Google Business Profile. Clarity of offer has no other check, so that area goes too: 15 checks across 8 areas. */
+var HC_OUT = ['headline', 'offer-structure', 'local-listing'];
+M = M.filter(function(m){ return HC_OUT.indexOf(m.id) < 0; });
+CATS = CATS.filter(function(c){ return M.some(function(m){ return m.cat === c.id; }); });
+(function(){
+  var W = ['no','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'];
+  var areas = W[CATS.length] || String(CATS.length);
+  COPY.footerHow = COPY.footerHow.replace('18 checks across nine areas', M.length + ' checks across ' + areas + ' areas');
+  for (var ci = 0; ci < M.length; ci++) if (M[ci].id === 'certs') COPY.cmpPartHelp = COPY.cmpPartHelp.replace('(check 13)', '(check ' + (ci + 1) + ')');
+  var h = document.getElementById('catsH'); if (h) h.textContent = areas.charAt(0).toUpperCase() + areas.slice(1) + ' areas at a glance';
+})();
+if (REPORT) M.forEach(function(m){
   var c = (REPORT.checks || {})[m.id] || {};
   m.raw = (typeof c.score === 'number' && isFinite(c.score)) ? c.score : null;
   m.flaw = c.flaw || NM.label; m.finding = c.finding || '';
@@ -127,6 +139,11 @@ rep('compare data', "  try { C = JSON.parse($('compare-data').textContent); } ca
     (C.metrics || []).forEach(function(m){ var o = OV[m.id]; if (o) Object.keys(o).forEach(function(k){ m[k] = o[k]; }); });
     if (C.coverage && C.coverage.yes && C.coverage.yes.responsive != null) C.coverage.yes.responsive = 'By proxy: viewport set and small-screen layout rules found';
   }`);
+// the free report scores the main photo on resolution only, so the sample does too, with the same note as a live report
+rep('sample hero', "raw:5.3, flaw:'Washed-out stock hero photo', fix:'A half-day professional shoot of your real parts and shop floor', finding:'The first thing visitors see is a pale stock image that could belong to any business.',",
+  "raw:5.0, flaw:'Main image 1,280 × 549 px: soft on desktop screens', fix:'A half-day professional shoot of your real parts and shop floor', finding:'The largest version of your main home-page image is 1,280 px wide, so it looks soft on most desktop screens.', lockNote:'Scored on resolution only. Sharpness, lighting and whether it shows your real work are judged by a marketing specialist in the full report.',");
+// the backdrop's source-code view balloons lines by check: drop the lines whose check the free report leaves out
+rep('source view', '  var FS = 30, CW = FS*0.6, X = 160,', '  L = L.filter(function(l){ return !l[3] || byId[l[3]]; });\n  var FS = 30, CW = FS*0.6, X = 160,');
 rep('boot close',
   "if (location.hash && /^#m-/.test(location.hash)){ var id = location.hash.slice(3); if (byId[id]) setTimeout(function(){goTo(id);}, 50); }\n})();\n</script>",
 `if (location.hash && /^#m-/.test(location.hash)){ var id = location.hash.slice(3); if (byId[id]) setTimeout(function(){goTo(id);}, 50); }
@@ -145,7 +162,7 @@ rep('boot close',
   if (h) h.textContent = 'Compared with a competitor';
   if (i) i.textContent = REPORT ? 'The full report puts your site side by side with one competitor you name, across the same checks.' : 'The full report puts your site side by side with one competitor you name. Here it’s a fictional firm.';
   var open = document.querySelector('#rivals .rv.slot.open');
-  if (open) open.outerHTML = '<section class="rv pt-slot" aria-label="Competitor"><p class="rv-k">Competitor · Full report</p><p>Name one competitor when you order and we’ll measure them on the same checks, side by side with you.</p><div class="acts"><button type="button" class="btn small gold" data-pt-open>Order the full report · £4.99</button></div></section>';
+  if (open) open.outerHTML = '<section class="rv pt-slot" aria-label="Competitor"><p class="rv-k">Competitor · Full report</p><p>Name one competitor when you ask for your full report and we’ll measure them on the same checks, side by side with you.</p><div class="acts"><a class="btn small gold" data-pt-mail href="mailto:jenny@34automation.co.uk?subject=Full%20report%20request">Email Jenny · £4.99</a></div></section>';
 })();
 /* v5 · a live report has no hand-drawn page to balloon, so that section steps aside; the footer says how the report was made */
 /* v5.2 · full report: the designer's summary takes the offer's place, and there is nothing to re-run */
@@ -183,6 +200,8 @@ s = s.replace(/your Performance Test/g, 'your full report').replace(/Performance
 for (const m of s.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);   // fail the build on a script that doesn't parse
 mkdirSync(join(here, 'dist'), { recursive: true });
 writeFileSync(join(here, 'dist/index.html'), s);
+// marketing copy for video shorts (Nathan, 23 Nov): the same working page, opening on the fictional Vellmoor sample
+writeFileSync(join(here, 'dist/vellmoor-marketing.html'), s.replace('<title>Website Health Check</title>', '<title>Vellmoor Health Check</title>'));
 
 /* ---- site build: 34automation.co.uk/health-check/ ----
    The site's CSP allows only its own scripts and fonts: the page script moves to app.js and the
