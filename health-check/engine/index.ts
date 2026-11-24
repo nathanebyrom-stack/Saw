@@ -4,10 +4,10 @@
 //   GET  ?id=<uuid> read a run: {id, status, url, report, error}
 // Public by design (the report page calls it without a login), so it does its own checks:
 // address validation and private-network blocking live in engine.ts; rate limits live here.
+// Deployed build imports the engine pinned to a commit of the public repo (see deploy notes in README).
+// Locally and in tests, "./engine.ts" is used.
 import { audit, HcError, normaliseUrl } from "./engine.ts";
 
-declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (r: Request) => Response | Promise<Response>): void };
-declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
 const SB = Deno.env.get("SUPABASE_URL")!;
 const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -47,7 +47,8 @@ async function run(id: string, url: string) {
     await patch(id, { status: "error", error: msg, finished_at: new Date().toISOString() });
   }
 }
-const background = (p: Promise<unknown>) => { if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(p); };
+// deno-lint-ignore no-explicit-any
+const background = (p: Promise<unknown>) => { const er = (globalThis as any).EdgeRuntime; if (er?.waitUntil) er.waitUntil(p); };
 
 Deno.serve(async (req: Request) => {
   try {

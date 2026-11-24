@@ -28,3 +28,57 @@ body[data-bg="c"] .runbox{background:rgba(255,255,255,.3)}
 /* v5 · fix carried over from v4.8: the Before/After switch rule (.ba, absolute at 1100px+) also caught the nine
    "Now -> Fixed" pictures in the area headings and stacked them in the page's top-right corner */
 .ghead .ba{position:static;margin:0}
+
+/* ---------- v5.2 · full report offer and order form ---------- */
+.pt{padding:8px 0 0}
+.pt-card{display:grid;gap:22px;background:var(--graphite);color:#fff;border-radius:24px;padding:22px;box-shadow:0 0 0 1px rgba(201,162,76,.45)}
+@media (min-width:900px){.pt-card{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);padding:28px 30px;align-items:start}.pt-card:not(.open){grid-template-columns:1fr}}
+.pt-kick{margin:0 0 6px;font:700 12px/1.2 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.pt h2{font-size:clamp(24px,3.4vw,34px);color:#fff}
+.pt-list{margin:14px 0 18px;padding:0;list-style:none;display:grid;gap:8px;max-width:44em}
+.pt-list li{position:relative;padding-left:26px;font:500 15px/1.5 var(--f-body);color:#E8EAED}
+.pt-list li::before{content:"";position:absolute;left:2px;top:6px;width:12px;height:7px;border-left:2.5px solid var(--gold);border-bottom:2.5px solid var(--gold);transform:rotate(-45deg)}
+.pt-small{margin:10px 0 0;font:500 13px/1.4 var(--f-body);color:#A9AFB6}
+.pt-form{background:#fff;color:var(--graphite);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.pt-form[hidden]{display:none}
+.pt-form h3{font-size:20px;font-stretch:112%}
+.pt-row{display:grid;gap:12px}
+@media (min-width:560px){.pt-row{grid-template-columns:1fr 1fr}}
+.pt-fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.pt-fld label,.pt-comp legend{font:600 14px/1.2 var(--f-body)}
+.pt-fld input{width:100%;min-width:0;font:500 16px/1.3 var(--f-body);color:var(--graphite);background:#fff;border:1.5px solid #6B6F75;border-radius:12px;padding:10px 12px;min-height:44px}
+.pt-fld input:focus{outline:3px solid var(--gold);outline-offset:1px;border-color:var(--graphite)}
+.pt-fld input[aria-invalid="true"]{border-color:#D7263D;box-shadow:0 0 0 1px #D7263D}
+.pt-comp{border:1.5px dashed #C9C5BA;border-radius:14px;padding:10px 12px 12px;margin:0;min-width:0}
+.pt-comp legend{padding:0 6px}
+.pt-consent{display:flex;gap:10px;align-items:flex-start;font:500 14px/1.45 var(--f-body)}
+.pt-consent input{width:20px;height:20px;margin:2px 0 0;flex:0 0 auto;accent-color:#0E0F11}
+.pt-consent a{color:var(--graphite);font-weight:600}
+.pt-err{margin:0;font:600 14px/1.4 var(--f-body);color:#B01E31}
+.pt-err:empty{display:none}
+.pt-acts{display:flex;flex-wrap:wrap;gap:8px}
+.pt-acts .btn:not(.gold){border-color:var(--graphite)}
+.pt-status{margin:0;font:500 14px/1.45 var(--f-body);min-height:1.45em}
+.pt-status a{color:var(--graphite);font-weight:700}
+.rv.pt-slot{background:var(--graphite);color:#fff;border:2px solid var(--gold)}
+.rv.pt-slot .rv-k{color:var(--gold)}
+.rv.pt-slot p{color:#E8EAED}
+@media print{.pt{display:none!important}}
+.pt-sum{margin:12px 0 0;max-width:46em;font:500 16px/1.6 var(--f-body);color:#E8EAED}
+.pt-pri{margin:16px 0 0;padding-left:22px;display:grid;gap:8px;max-width:46em}
+.pt-pri li{font:600 15px/1.5 var(--f-body);color:#fff}
+.pt-pri li::marker{color:var(--gold);font-family:var(--f-mono)}
+.pt-cmp{display:grid;gap:14px;margin:16px 0 6px}
+@media (min-width:700px){.pt-cmp{grid-template-columns:1fr 1fr}}
+.pt-card.open .pt-cmp{grid-template-columns:1fr}
+.pt-col{border:1px solid #3A3E45;border-radius:14px;padding:14px 16px;min-width:0}
+.pt-colh{margin:0 0 8px;font:700 12px/1.2 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.pt-col .pt-list{margin:0}
+.pt-list li.no::before{width:11px;height:0;border-left:0;border-bottom:2.5px solid #8C929A;transform:none;top:11px}
+.pt-list li.no{color:#A9AFB6}
+.pt-spec{margin:12px 0 16px;max-width:52em;font:500 14px/1.55 var(--f-body);color:#D4D8DD;border-left:3px solid var(--gold);padding-left:12px}
+.pt-spec b{color:#fff}
+
+/* v5.5 · blank start: before a site is checked, only the hero, the run form and the full report offer show */
+.hc-blank .cats,.hc-blank #drawing,.hc-blank #toolbar,.hc-blank .board,.hc-blank #compare,.hc-blank footer,.hc-blank #fab,
+.hc-blank #client,.hc-blank .hero .btns,.hc-blank .dialcard,.hc-blank .cost-lead{display:none!important}

@@ -34,11 +34,26 @@ NODE_PATH=$(npm root -g) node --no-warnings web/test-page.mjs   # browser tests 
 Scored automatically (15 of 18): headline (rules only), spec page, machine list, tap to call, phone layout, page weight, server speed,
 quote form, reply promise, case studies, certificates, page titles, HTTPS, platform, chat and booking.
 
-Not measured, shown as such and left out of every total: hero photo and offer structure (they need judgement), local listing
-(checked by hand). Mobile load time (LCP) needs a Google PageSpeed Insights key (`PSI_API_KEY` on the function).
+Clarity of offer is scored by rules (what, who for, where, how focused), capped at 8 because rules can't judge quality.
+The site's sector is read from its words; spec page and machine list apply only to sites that read as manufacturers.
+
+Not measured, shown as such and left out of every total: hero photo (needs judgement), local listing (checked by hand),
+and spec page and machine list on non-manufacturer sites. Mobile load time (LCP) needs a Google PageSpeed Insights key
+(`PSI_API_KEY` on the function).
 
 ## Not yet reviewed
 
 - The scoring rules in `RUBRIC` are a first draft. Ruby and Leo have not seen them.
 - Strings marked `[v5]` are new and have not been through Maya, Edie, Quinn, humanize or the slop gate.
 - Enquiry capture is still off, as in v4.8, until the privacy notice section is live.
+
+## Deploying the engine
+
+The Saw repository is public, so the deployed Edge Function imports the engine straight from a pinned commit
+instead of uploading it. To deploy a new engine version:
+
+1. Commit and push `engine/engine.ts`, and note the commit hash.
+2. Deploy `engine/index.ts` as the `health-check` function (JWT verification off), with its import line changed from
+   `"./engine.ts"` to `"https://raw.githubusercontent.com/nathanebyrom-stack/Saw/<commit>/health-check/engine/engine.ts"`.
+
+Live now: engine 1.1.0 from commit `1dfca48`.
