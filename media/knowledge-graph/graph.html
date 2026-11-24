@@ -1,0 +1,278 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>34 Knowledge Graph</title>
+<style>
+@font-face{font-family:SG;src:url(file:///home/user/Dollar/src/assets/fonts/space-grotesk-latin-700-normal.woff2);font-weight:700}
+@font-face{font-family:PM;src:url(file:///home/user/Dollar/src/assets/fonts/ibm-plex-mono-latin-500-normal.woff2);font-weight:500}
+@font-face{font-family:IN;src:url(file:///home/user/Dollar/src/assets/fonts/inter-latin-wght-normal.woff2);font-weight:100 900}
+html,body{margin:0;background:#0C0E11;overflow:hidden}
+canvas{display:block}
+</style></head>
+<body><canvas id="c" width="1080" height="1350"></canvas>
+<script>
+const W=1080,H=1350,DUR=62;
+const C={bg:'#0C0E11',panel:'#14171C',muted:'#8B939F',silver:'#CBD3DE',spark:'#F2F5FA',gold:'#C9A24C',goldHi:'#EDC762',claude:'#E2885E',gpt:'#3CC6A0'};
+const cv=document.getElementById('c'),x=cv.getContext('2d');
+
+// ---------- helpers ----------
+const cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const seg=(t,a,b)=>cl((t-a)/(b-a));
+const io=v=>v<.5?4*v*v*v:1-Math.pow(-2*v+2,3)/2;
+const oc=v=>1-Math.pow(1-v,3);
+const lerp=(a,b,k)=>a+(b-a)*k;
+const win=(t,a,b,f=.5)=>Math.min(seg(t,a,a+f),1-seg(t,b-f,b)); // fade-in/out window
+const hash=s=>{let h=2166136261;for(const ch of String(s)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return ((h>>>0)%10000)/10000};
+function rgba(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+function mix(h1,h2,k){const a=parseInt(h1.slice(1),16),b=parseInt(h2.slice(1),16);const r=Math.round(lerp(a>>16&255,b>>16&255,k)),g=Math.round(lerp(a>>8&255,b>>8&255,k)),bl=Math.round(lerp(a&255,b&255,k));return '#'+((1<<24)+(r<<16)+(g<<8)+bl).toString(16).slice(1)}
+
+// ---------- data (sourced from Nathan's Drive: training matrix 24 Nov, new-employee guide v0.3, Red Pill team doc v1.2) ----------
+const N={};
+function add(id,label,role,side,tier,pos,status='live'){N[id]={id,label,role,side,tier,x:pos[0],y:pos[1],status}}
+const P=(cx,cy,r,deg)=>[cx+r*Math.cos(deg*Math.PI/180),cy+r*Math.sin(deg*Math.PI/180)];
+const NAT=[560,420],JEN=[410,650],CAL=[810,640];
+add('nathan','Nathan','Founder','core',0,NAT);
+add('jen','Jen','Chief of Staff','claude',1,JEN);
+add('caleb','Caleb','Chief of Staff','gpt',1,CAL);
+add('remmi','Remmi','Director of Legal','claude',2,[400,330],'training');
+const dirs=[
+ ['leo','Leo','Senior Director, 34 Automation'],['otto','Otto','Director of 34 Automation'],['scott','Scott','Director of Copywriting'],
+ ['lexi','Lexi','Director of LinkedIn'],['glenn','Glenn','Director of Skills'],['edie','Edie','Editor, final gate'],
+ ['red','Red','Fact Checking'],['juliet','Juliet','Director of Agent Resources'],['saw','Sawhokee','Chief of Training'],
+ ['anna','Anna','Director of Data'],['wren','Wren','Creative Chart Architect'],['echo','Echo','Director of Gamification'],
+ ['frank','Frank Jr','Director of Finance'],['zach','Zach','Client accounts lead'],['chris','Chris','Project lead'],
+ ['fern','Fern','Project lead'],['emanuel','Emanuel','Inbox and requests']];
+const status={red:'training',wren:'training',echo:'training'};
+dirs.forEach((d,i)=>{const a=92+i*(168/(dirs.length-1));const parent=['leo','glenn','saw','frank'].includes(d[0]);const r=parent?205:(i%2?250:175);add(d[0],d[1],d[2],'claude',2,P(JEN[0],JEN[1],r,a),status[d[0]]||'live');N[d[0]].ang=a;N[d[0]].rad=r});
+function kids(par,list,side='claude',spread=26,dr=118,st='live'){const p=N[par];list.forEach((k,i)=>{const a=p.ang+(i-(list.length-1)/2)*spread/ (list.length>3?1.4:1);add(k[0],k[1],k[2],side,3,P(JEN[0],JEN[1],p.rad+dr+(i%2)*24,a),k[3]||st);N[k[0]].parent=par})}
+kids('leo',[['dollar','Dollar','Website planner'],['quinn','Quinn','QA'],['reid','Reid','Outreach'],['maya','Maya','Content'],['nova','Nova','Team member']],'claude',16);
+kids('glenn',[['vera','Vera','Vets skills'],['sam','Sam','Installs skills']],'claude',14);
+kids('frank',[['ruby','Ruby','Research'],['penny','Penny','Finance']],'claude',14);
+// Black Ops: trained by Sawhokee (records 18 Nov); department proposed
+kids('saw',[['bo5','BO-005','Animator'],['bo6','BO-006','Videographer'],['bo7','BO-007','Trendsetter'],['bo9','BO-009','Data analyst']],'claude',13,118,'training');
+// Red Pill Task Force: three each side (proposed, in training)
+[['oracle','Oracle'],['trinity','Trinity'],['mouse','Mouse']].forEach((k,i)=>add(k[0],k[1],'Red Pill · Claude side','claude',3,P(JEN[0],JEN[1],205+i*8,28+i*20),'training'));
+[['morpheus','Morpheus'],['neo','Neo'],['switch','Switch']].forEach((k,i)=>add(k[0],k[1],'Red Pill · ChatGPT side','gpt',3,P(CAL[0],CAL[1],205+i*8,152-i*20),'training'));
+add('codex','Codex','Trainer · OpenAI','gpt',2,P(CAL[0],CAL[1],175,-25));
+add('exchange','Team Exchange','Shared board','core',4,[612,640]);
+
+const TX=x0=>540+(x0-560)*1.05, TY=y0=>654+(y0-640)*1.4;
+Object.values(N).forEach(n=>{n.x=TX(n.x);n.y=TY(n.y)});
+const E=[];
+function edge(a,b,type='reports'){E.push({a,b,type,id:a+'>'+b})}
+['jen','caleb','remmi'].forEach(k=>edge('nathan',k));
+dirs.forEach(d=>edge('jen',d[0]));
+['dollar','quinn','reid','maya','nova'].forEach(k=>edge('leo',k));
+['vera','sam'].forEach(k=>edge('glenn',k));['ruby','penny'].forEach(k=>edge('frank',k));
+['oracle','trinity','mouse'].forEach(k=>edge('jen',k));['morpheus','neo','switch','codex'].forEach(k=>edge('caleb',k));
+edge('jen','exchange','exchange');edge('exchange','caleb','exchange');
+// training lines: Sawhokee's Cycle 1 (14 trained, 18-24 Nov) + Black Ops records
+const cycle=[['18 NOV','jen','Pass'],['18 NOV','leo','Pass'],['19 NOV','zach','Partial'],['19 NOV','otto','Partial'],['20 NOV','frank','Pass'],['20 NOV','glenn','Pass'],['21 NOV','chris','Pass'],['21 NOV','fern','Pass'],['22 NOV','emanuel','Partial'],['22 NOV','anna','Pass'],['23 NOV','juliet','Pass'],['23 NOV','dollar','Pass'],['24 NOV','scott','Pass'],['24 NOV','lexi','Pass']];
+cycle.forEach(c=>edge('saw',c[1],'trains'));['bo5','bo6','bo7','bo9'].forEach(k=>edge('saw',k,'trains'));
+edge('codex','oracle','trains');edge('codex','morpheus','trains');edge('codex','neo','trains');edge('codex','switch','trains');edge('codex','trinity','trains');edge('codex','mouse','trains');
+// cross-side handoff pairs (training manual part C)
+edge('morpheus','oracle','pair');edge('neo','trinity','pair');edge('switch','mouse','pair');
+
+const AGENTS=Object.values(N).filter(n=>n.id!=='nathan'&&n.id!=='exchange').length;
+const CONNS=E.filter(e=>e.type!=='exchange').length+1;
+const JENREP=E.filter(e=>e.a==='jen'&&e.type==='reports').length;
+const EBY={};E.forEach(e=>EBY[e.id]=e);
+
+// depth for reveal
+const depth={nathan:0};let changed=true;while(changed){changed=false;E.forEach(e=>{if(e.type==='trains'||e.type==='pair')return;if(depth[e.a]!=null&&depth[e.b]==null){depth[e.b]=depth[e.a]+1;changed=true}})}
+Object.values(N).forEach(n=>{if(depth[n.id]==null)depth[n.id]=4});
+
+// ---------- timeline ----------
+const S={me:[0,7],deal:[7,12.6],jen:[12.6,19.2],two:[19.2,29.2],flow:[29.2,38.4],train:[38.4,49.4],plug:[49.4,56.4],end:[56.4,62]};
+// camera keyframes [t,x,y,zoom]
+const CAM=[[0,560,420,2.6],[1.6,560,420,2.6],[4.6,560,660,0.93],[7,560,660,0.93],[8.2,560,590,1.0],[12.2,560,590,1.0],[13.6,370,700,1.18],[18.6,380,700,1.18],[20.2,600,690,1.08],[28.6,600,690,1.08],[30.4,330,760,1.65],[33.4,330,760,1.65],[34.6,560,640,0.95],[37.8,560,640,0.95],[39.2,420,700,1.25],[44.4,420,700,1.25],[45.4,470,690,0.95],[46.6,470,690,0.95],[47.6,320,770,1.3],[49,320,770,1.3],[50.4,560,650,0.86],[56,560,650,0.8],[60,560,650,0.68],[62,560,650,0.66]].map(k=>[k[0],TX(k[1]),TY(k[2]),k[3]]);
+function cam(t){for(let i=0;i<CAM.length-1;i++){const a=CAM[i],b=CAM[i+1];if(t<=b[0]){const k=io(seg(t,a[0],b[0]));return{x:lerp(a[1],b[1],k),y:lerp(a[2],b[2],k),z:lerp(a[3],b[3],k)}}}const l=CAM[CAM.length-1];return{x:l[1],y:l[2],z:l[3]}}
+let CA;const SX=wx=>(wx-CA.x)*CA.z+W/2, SY=wy=>(wy-CA.y)*CA.z+H/2+30;
+
+// focus sets per beat: returns {nodes:{id:level}, edges:{id:level}, dim}
+function focus(t){
+ const F={n:{},e:{},dim:0,side:0,train:0,flowA:0,flowB:0,hr:0,roles:new Set()};const RO=(...a)=>a.forEach(i=>F.roles.add(i));
+ const setN=(ids,v)=>ids.forEach(i=>F.n[i]=Math.max(F.n[i]||0,v));
+ const setE=(f,v)=>E.forEach(e=>{if(f(e))F.e[e.id]=Math.max(F.e[e.id]||0,v)});
+ let w;
+ w=win(t,...S.deal,.6);if(w>0){F.dim=Math.max(F.dim,w*.85);setN(['nathan','jen','caleb','remmi'],w);RO('nathan','jen','caleb','remmi');setE(e=>e.a==='nathan',w)}
+ w=win(t,...S.jen,.6);if(w>0){F.dim=Math.max(F.dim,w*.7);const k=seg(t,S.jen[0]+1.6,S.jen[0]+4.2);setN(['jen'],w);RO('jen');E.forEach((e,i)=>{if(e.a==='jen'&&e.type==='reports'){const order=Object.keys(F.e).length;const thr=(dirs.findIndex(d=>d[0]===e.b)+1||18)/21;const v=w*cl((k-thr*0.85)*8);F.e[e.id]=Math.max(F.e[e.id]||0,v);F.n[e.b]=Math.max(F.n[e.b]||0,v)}})}
+ w=win(t,...S.two,.7);if(w>0){F.side=w;F.dim=Math.max(F.dim,w*.35);setN(['jen','caleb','exchange'],w);RO('jen','caleb','codex','saw');setE(e=>e.type==='exchange',w);
+   const r=win(t,S.two[0]+3.6,S.two[1],.5);if(r>0){F.dim=Math.max(F.dim,r*.7);setN(['oracle','trinity','mouse','morpheus','neo','switch'],r);setE(e=>e.type==='pair'||((e.a==='jen'||e.a==='caleb')&&['oracle','trinity','mouse','morpheus','neo','switch'].includes(e.b)),r)}
+   const c=win(t,S.two[0]+6.6,S.two[1],.5);if(c>0){setN(['codex','saw'],c);setE(e=>e.a==='codex',c)}}
+ w=win(t,...S.flow,.6);if(w>0){F.dim=Math.max(F.dim,w*.78);RO('scott','edie','jen','dollar','caleb','nathan');F.flowA=win(t,S.flow[0]+.4,S.flow[0]+4.8,.4);F.flowB=win(t,S.flow[0]+4.6,S.flow[1],.4)}
+ w=win(t,S.train[0],S.train[0]+6.4,.6);if(w>0){RO('saw');F.train=w;F.dim=Math.max(F.dim,w*.75);setN(['saw'],w);const k=seg(t,S.train[0]+1.2,S.train[0]+5.2);cycle.forEach((c,i)=>{const v=w*cl((k*14-i)*1.5);F.e['saw>'+c[1]]=v;F.n[c[1]]=Math.max(F.n[c[1]]||0,v)});const b=w*seg(t,S.train[0]+5,S.train[0]+5.8);['bo5','bo6','bo7','bo9'].forEach(k2=>{F.e['saw>'+k2]=b;F.n[k2]=b})}
+ w=win(t,S.train[0]+6.2,S.train[1],.5);if(w>0){F.dim=Math.max(F.dim,w*.75);const j=win(t,S.train[0]+6.2,S.train[0]+9,.4);setN(['juliet'],w);RO('juliet','glenn','vera','sam');F.hr=j;const g=seg(t,S.train[0]+8.6,S.train[0]+9.2)*w;setN(['glenn','vera','sam'],g);setE(e=>e.a==='glenn',g)}
+ w=win(t,...S.plug,.6);if(w>0){F.train=Math.max(F.train,w*.6)}
+ return F;
+}
+
+// ---------- drawing ----------
+const dust=[...Array(170)].map((_,i)=>({x:hash('x'+i)*1600-260,y:hash('y'+i)*2000-320,r:hash('r'+i)*1.4+.3,d:hash('d'+i)*.6+.2,a:hash('a'+i)*.5+.15}));
+function bg(t){
+ x.fillStyle=C.bg;x.fillRect(0,0,W,H);
+ const g=x.createRadialGradient(W/2,H*.48,60,W/2,H*.5,900);g.addColorStop(0,'rgba(40,46,56,0.55)');g.addColorStop(.6,'rgba(18,21,26,0.25)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,W,H);
+ dust.forEach(p=>{const px=((p.x-(CA.x-560)*p.d*.4+t*6*p.d)%1600+1600)%1600-260,py=((p.y-(CA.y-650)*p.d*.4)%2000+2000)%2000-320;x.fillStyle=rgba(C.silver,p.a*.35);x.beginPath();x.arc(px,py,p.r,0,7);x.fill()});
+}
+function sideCol(n,t,F){
+ if(n.id==='nathan')return C.gold; if(n.id==='exchange')return C.goldHi;
+ const s=n.side==='gpt'?C.gpt:n.side==='claude'?C.claude:C.silver;
+ return mix(C.silver,s,0.28+0.72*F.side);
+}
+function revealN(n,t){return oc(seg(t,2.2+depth[n.id]*.55+hash(n.id)*.35,2.9+depth[n.id]*.55+hash(n.id)*.35))}
+function drawEdges(t,F){
+ if(F.hr>0){const J=N.juliet,jx=SX(J.x),jy=SY(J.y);Object.values(N).forEach(n=>{if(['juliet','nathan','exchange','caleb','morpheus','neo','switch','codex','oracle','trinity','mouse'].includes(n.id))return;const nx=SX(n.x),ny=SY(n.y);const g=cl(F.hr*1.4-hash(n.id+'h')*.4);x.save();x.strokeStyle=rgba(C.gold,.22*g);x.lineWidth=1;x.beginPath();x.moveTo(nx,ny);x.lineTo(lerp(nx,jx,g),lerp(ny,jy,g));x.stroke();const ph=(t*.5+hash(n.id))%1;x.fillStyle=rgba(C.goldHi,.9*g*Math.sin(ph*Math.PI));x.shadowColor=C.goldHi;x.shadowBlur=8;x.beginPath();x.arc(lerp(nx,jx,ph),lerp(ny,jy,ph),2.4,0,7);x.fill();x.restore()})}
+ E.forEach(e=>{
+  const a=N[e.a],b=N[e.b];let rv=Math.min(revealN(a,t),revealN(b,t));if(e.type==='trains')rv*=Math.max(F.train,F.e[e.id]||0);if(e.type==='pair')rv*=F.e[e.id]||0;if(rv<=0.01)return;
+  const hl=F.e[e.id]||0;const base=(e.type==='exchange'?.6:.32)*(1-F.dim*.85);const al=rv*(base+hl*.75);
+  const ax=SX(a.x),ay=SY(a.y),bx=SX(b.x),by=SY(b.y);
+  // grow from parent
+  const gx=lerp(ax,bx,rv),gy=lerp(ay,by,rv);
+  let col=e.type==='trains'?C.gold:e.type==='exchange'?C.goldHi:e.type==='pair'?C.spark:mix(sideCol(b,t,F),C.spark,hl*.4);
+  x.save();x.strokeStyle=rgba(col,al);x.lineWidth=(e.type==='exchange'?2.6:1.2+hl*1.6)*Math.sqrt(CA.z);
+  if(e.type==='trains'||e.type==='pair')x.setLineDash([4*CA.z,6*CA.z]);
+  if(hl>.3){x.shadowColor=rgba(col,.8);x.shadowBlur=14*hl}
+  x.beginPath();
+  if(e.type==='pair'){const mx=(ax+bx)/2,my=(ay+by)/2+40*CA.z;x.moveTo(ax,ay);x.quadraticCurveTo(mx,my,gx,gy)}else{x.moveTo(ax,ay);x.lineTo(gx,gy)}
+  x.stroke();x.restore();
+  // signal particles
+  if(rv>=1&&e.type!=='pair'){const sp=e.type==='exchange'?.45:.18+hash(e.id)*.12;const cnt=e.type==='exchange'?3:1;
+   for(let k=0;k<cnt;k++){let ph=(t*sp+hash(e.id+k)+k/cnt)%1;if(e.type==='exchange'&&k%2)ph=1-ph;const px=lerp(ax,bx,ph),py=lerp(ay,by,ph);const pa=Math.sin(ph*Math.PI)*(.25+hl*.75)*(1-F.dim*.7+hl*.7);
+    x.fillStyle=rgba(col,pa);x.shadowColor=rgba(col,pa);x.shadowBlur=8;x.beginPath();x.arc(px,py,(1.6+hl*1.4)*Math.sqrt(CA.z),0,7);x.fill();x.shadowBlur=0}}
+ });
+}
+const RAD=[27,17,11,7,8];
+function drawNodes(t,F){
+ const order=Object.values(N).sort((a,b)=>(F.n[a.id]||0)-(F.n[b.id]||0));
+ order.forEach(n=>{
+  const rv=n.id==='nathan'?oc(seg(t,.1,.9)):revealN(n,t);if(rv<=0)return;
+  const hl=F.n[n.id]||0;const dimK=1-F.dim*(1-hl)*.82;
+  const sx=SX(n.x),sy=SY(n.y);let r=RAD[n.tier]*Math.sqrt(CA.z)*(.4+.6*rv)*(1+hl*.25);
+  const col=sideCol(n,t,F);
+  x.save();x.globalAlpha=rv*dimK;
+  if(n.id==='exchange'){ // diamond hub
+   x.translate(sx,sy);x.rotate(Math.PI/4+t*.4);x.shadowColor=rgba(C.goldHi,.9);x.shadowBlur=20;x.strokeStyle=C.goldHi;x.lineWidth=2;x.strokeRect(-r,-r,2*r,2*r);x.fillStyle=rgba(C.goldHi,.25);x.fillRect(-r*.5,-r*.5,r,r);x.restore();
+  }else{
+   const glow=x.createRadialGradient(sx,sy,0,sx,sy,r*(3.2+hl*2));glow.addColorStop(0,rgba(col,.35+hl*.35));glow.addColorStop(1,rgba(col,0));x.fillStyle=glow;x.beginPath();x.arc(sx,sy,r*(3.2+hl*2),0,7);x.fill();
+   if(n.status==='training'){x.strokeStyle=col;x.lineWidth=1.8*Math.sqrt(CA.z);x.fillStyle=C.bg;x.beginPath();x.arc(sx,sy,r,0,7);x.fill();x.stroke();x.fillStyle=col;x.beginPath();x.arc(sx,sy,r*.35,0,7);x.fill()}
+   else{const g=x.createRadialGradient(sx-r*.35,sy-r*.35,r*.1,sx,sy,r);g.addColorStop(0,C.spark);g.addColorStop(1,col);x.fillStyle=g;x.beginPath();x.arc(sx,sy,r,0,7);x.fill()}
+   if(n.id==='nathan'){const p=(t*.6)%1;x.strokeStyle=rgba(C.goldHi,(1-p)*.7);x.lineWidth=2;x.beginPath();x.arc(sx,sy,r*(1.3+p*2.2),0,7);x.stroke()}
+   x.restore();
+  }
+  // labels
+  const showBase=(n.tier<=1)||(CA.z>1.25&&n.tier<=3)||(CA.z>1.02&&n.tier===2);
+  const la=rv*Math.max(showBase?(F.dim>0?hl*1+(1-F.dim)*.75:.75):0,hl);
+  if(la>.02&&n.id!=='exchange'){
+   const fs=(n.tier===0?24:n.tier===1?21:n.tier===2?15:13)*Math.min(1.25,Math.sqrt(CA.z))*(1+hl*.12);
+   x.save();x.globalAlpha=la;x.textAlign='center';x.font=`600 ${fs}px IN`;x.fillStyle=n.id==='nathan'?C.goldHi:C.spark;
+   x.shadowColor='rgba(0,0,0,.9)';x.shadowBlur=6;x.fillText(n.label,sx,sy+r+fs+4);
+   if((F.roles.has(n.id)&&hl>.3)||(n.tier<=1&&F.dim<.5)){x.globalAlpha=la*Math.max(hl,n.tier<=1?.8:0);x.font=`500 ${fs*.62}px PM`;x.fillStyle=n.side==='gpt'&&F.side>.2?C.gpt:n.side==='claude'&&F.side>.2?C.claude:C.muted;x.fillText(n.role.toUpperCase(),sx,sy+r+fs*1.75+6)}
+   x.restore();
+  }
+ });
+}
+
+// ---------- text ----------
+function txt(s,px,py,font,col,al,align='left',track=0){x.save();x.globalAlpha=al;x.font=font;x.fillStyle=col;x.textAlign=align;if(track)x.letterSpacing=track+'px';x.shadowColor='rgba(0,0,0,.85)';x.shadowBlur=12;x.fillText(s,px,py);x.restore()}
+function eyebrow(s,t,a,b,y=118){const al=win(t,a,b,.45);if(al<=0)return;const k=oc(seg(t,a,a+.6));x.save();x.globalAlpha=al;x.fillStyle=C.gold;x.fillRect(64,y-13,28*k,2);x.restore();txt(s,104,y-5,'500 21px PM',C.gold,al,'left',2.5)}
+function head(lines,t,a,b,y=190,size=62,col=C.spark){const al=win(t,a,b,.5);if(al<=0)return;lines.forEach((l,i)=>{const k=oc(seg(t,a+i*.12,a+.7+i*.12));txt(l,64,y+i*size*1.08+(1-k)*24,`700 ${size}px SG`,col,al*k)})}
+function body(lines,t,a,b,y,size=31,col=C.silver){const al=win(t,a,b,.45);if(al<=0)return;lines.forEach((l,i)=>{const k=oc(seg(t,a+i*.1,a+.6+i*.1));txt(l,64,y+i*size*1.42+(1-k)*14,`400 ${size}px IN`,col,al*k)})}
+function lower(lines,t,a,b,size=31){const al=win(t,a,b,.45);if(al<=0)return;const h=lines.length*size*1.45+44;x.save();x.globalAlpha=al*.92;const g=x.createLinearGradient(0,H-h-90,0,H);g.addColorStop(0,'rgba(12,14,17,0)');g.addColorStop(.35,'rgba(12,14,17,.92)');g.addColorStop(1,'rgba(12,14,17,.98)');x.fillStyle=g;x.fillRect(0,H-h-90,W,h+90);x.restore();
+ lines.forEach((l,i)=>{const k=oc(seg(t,a+i*.12,a+.6+i*.12));const isArr=Array.isArray(l);txt(isArr?l[0]:l,64,H-h+30+i*size*1.45+(1-k)*12,`${isArr?'600':'400'} ${size}px IN`,isArr?l[1]:C.silver,al*k)})}
+function topShade(al,h=330){if(al<=0)return;x.save();x.globalAlpha=al;const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'rgba(12,14,17,.95)');g.addColorStop(.65,'rgba(12,14,17,.75)');g.addColorStop(1,'rgba(12,14,17,0)');x.fillStyle=g;x.fillRect(0,0,W,h);x.restore()}
+function chip(s,px,py,col,al,fill=false){x.save();x.globalAlpha=al;x.font='600 23px IN';const w=x.measureText(s).width+36;x.fillStyle=fill?rgba(col,.22):'rgba(20,23,28,.92)';x.strokeStyle=rgba(col,.9);x.lineWidth=1.5;x.beginPath();x.roundRect(px,py,w,46,23);x.fill();x.stroke();x.fillStyle=C.spark;x.textBaseline='middle';x.fillText(s,px+18,py+24);x.restore();return w}
+
+let LOGO=new Image();LOGO.src='file:///home/user/Dollar/src/assets/brand/34-automation-plate.svg';
+
+function overlay(t,F){
+ // S1
+ topShade(win(t,0,S.end[0],.4)*.9);
+ eyebrow('34 AUTOMATION · HOW WE ARE BUILT',t,.4,6.8);
+ head(['This is me.'],t,.6,3.4,200,76);
+ const c=win(t,3.4,6.9,.4);if(c>0){const k=io(seg(t,3.4,5.6));head([`${Math.round(AGENTS*k)} AI agents.`,`${Math.round(CONNS*k)} connections.`],t,3.4,6.9,195,66)}
+ // S2
+ eyebrow('NATHAN · FOUNDER',t,S.deal[0]+.1,S.deal[1]);
+ head(['How many do I','actually deal with?'],t,S.deal[0]+.2,S.deal[0]+2.8,195,60);
+ const k3=win(t,S.deal[0]+2.6,S.deal[1],.4);if(k3>0){const s=oc(seg(t,S.deal[0]+2.6,S.deal[0]+3.2));txt('3.',64,268+ (1-s)*30,'700 150px SG',C.goldHi,k3*s)}
+ lower([['Jen, Caleb and Remmi.',C.spark],`The other ${AGENTS-3} run through the structure.`],t,S.deal[0]+3,S.deal[1]);
+ // S3
+ eyebrow('CHIEF OF STAFF · CLAUDE SIDE',t,S.jen[0]+.2,S.jen[1]);
+ head(['Meet Jen.'],t,S.jen[0]+.3,S.jen[1],200,70);
+ lower([[`${JENREP} report to her. 17 are directors.`,C.spark],'Anything that needs me goes to her first.','She decides, or finds a way round.'],t,S.jen[0]+1.4,S.jen[1]);
+ // S4
+ eyebrow('TWO PLATFORMS · ONE TEAM',t,S.two[0]+.2,S.two[1]);
+ head(['Claude and ChatGPT,','working together.'],t,S.two[0]+.3,S.two[1],195,58);
+ const sl=win(t,S.two[0]+.8,S.two[0]+3.8,.4);if(sl>0){chip('CLAUDE · JEN',64,320,C.claude,sl,true);const w2=chip('CHATGPT · CALEB',0,-200,C.gpt,0);chip('CHATGPT · CALEB',W-64-w2,320,C.gpt,sl,true)}
+ lower([['Caleb runs the ChatGPT side, as Jen’s equal.',C.spark],'Joint work goes through Team Exchange.'],t,S.two[0]+.9,S.two[0]+3.8);
+ lower([['Red Pill Task Force: three from each side.',C.spark],'The lead rotates with every project.'],t,S.two[0]+3.8,S.two[0]+6.7);
+ lower([['Our training manual is written by Claude',C.spark],['and delivered by OpenAI’s Codex.',C.spark]],t,S.two[0]+6.7,S.two[1]);
+ // S5 flows
+ eyebrow('WORKFLOWS',t,S.flow[0]+.1,S.flow[1]);
+ head(['Every job has a route.'],t,S.flow[0]+.2,S.flow[1],195,58);
+ flowDraw(t,F);
+ // S6 training
+ eyebrow('TRAINING AND DEVELOPMENT',t,S.train[0]+.1,S.train[0]+6.4);
+ head(['We built a','training department.'],t,S.train[0]+.2,S.train[0]+6.4,195,58);
+ ticker(t);
+ eyebrow('AGENT RESOURCES · OUR HR',t,S.train[0]+6.4,S.train[0]+8.8);
+ head(['And an HR team.'],t,S.train[0]+6.5,S.train[0]+8.8,195,58);
+ lower([['Juliet audits the whole company every Monday.',C.spark],'Weekly reports, blockers and idle time go to her.'],t,S.train[0]+6.6,S.train[0]+8.8);
+ eyebrow('SKILLS',t,S.train[0]+8.8,S.train[1]);
+ head(['And a skills team.'],t,S.train[0]+8.9,S.train[1],195,58);
+ lower([['Glenn runs Skills.',C.spark],'Vera vets every skill. Sam installs it.'],t,S.train[0]+9,S.train[1]);
+ // S7
+ eyebrow('THE REAL WORK',t,S.plug[0]+.1,S.plug[1]);
+ head(['Building an AI agency','isn’t plug and play.'],t,S.plug[0]+.2,S.plug[1],195,58);
+ const items=['Weekly report to HR from every agent','A company audit every Monday','A 1-to-1 every six weeks','48-hour reports on every project','Every claim sourced, or marked UNVERIFIED','Nothing posted without an editor and sign-off','No agent ever gets retired'];
+ const la=win(t,S.plug[0]+1,S.plug[1],.4);if(la>0){x.save();x.globalAlpha=la*.92;x.fillStyle='rgba(12,14,17,.86)';x.beginPath();x.roundRect(48,H-450,W-96,400,18);x.fill();x.strokeStyle=rgba(C.gold,.35);x.stroke();x.restore();
+  items.forEach((s,i)=>{const k=oc(seg(t,S.plug[0]+1.1+i*.42,S.plug[0]+1.6+i*.42));x.save();x.globalAlpha=la*k;x.fillStyle=i===items.length-1?C.goldHi:C.gold;x.fillRect(84,H-404+i*52,8,8);x.restore();txt(s,112,H-394+i*52,`${i===items.length-1?600:400} 27px IN`,i===items.length-1?C.spark:C.silver,la*k)})}
+ // S8
+ const e=seg(t,S.end[0],S.end[0]+1.2);if(e>0){x.save();x.globalAlpha=oc(e)*.86;x.fillStyle=C.bg;x.fillRect(0,0,W,H);x.restore();
+  const lw=760,lh=lw*75.2/515.8,k=oc(seg(t,S.end[0]+.4,S.end[0]+1.6));x.save();x.globalAlpha=k;x.drawImage(LOGO,(W-lw)/2,520-lh/2+(1-k)*20,lw,lh);x.restore();
+  const k2=oc(seg(t,S.end[0]+1.3,S.end[0]+2.1));txt('Two years of building.',W/2,700+(1-k2)*16,'700 58px SG',C.spark,k2,'center');
+  const k3=oc(seg(t,S.end[0]+2,S.end[0]+2.8));txt('Still building.',W/2,775+(1-k3)*16,'700 58px SG',C.goldHi,k3,'center');
+  const k4=oc(seg(t,S.end[0]+2.8,S.end[0]+3.6));txt('34AUTOMATION.COM',W/2,1180,'500 24px PM',C.muted,k4,'center',3);
+  // fade out tail
+  const fo=seg(t,DUR-.5,DUR);if(fo>0){x.fillStyle=rgba(C.bg,fo);x.fillRect(0,0,W,H)}}
+}
+function pathAlong(ids,t,a,b,col){ // route line through nodes with travelling packet
+ const pts=ids.map(i=>[SX(N[i].x),SY(N[i].y)]);let L=[0];for(let i=1;i<pts.length;i++)L.push(L[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));
+ const prog=io(seg(t,a,b))*L[L.length-1];
+ x.save();x.strokeStyle=col;x.lineWidth=4;x.shadowColor=col;x.shadowBlur=18;x.lineCap='round';x.beginPath();x.moveTo(...pts[0]);let head=pts[0];
+ for(let i=1;i<pts.length;i++){if(prog>=L[i]){x.lineTo(...pts[i]);head=pts[i]}else{const k=(prog-L[i-1])/(L[i]-L[i-1]);if(k>0){head=[lerp(pts[i-1][0],pts[i][0],k),lerp(pts[i-1][1],pts[i][1],k)];x.lineTo(...head)}break}}
+ x.stroke();x.fillStyle='#fff';x.beginPath();x.arc(head[0],head[1],7,0,7);x.fill();x.restore();
+ return {pts,L,prog};
+}
+function flowDraw(t,F){
+ const s=S.flow[0];
+ if(F.flowA>0){x.save();x.globalAlpha=F.flowA;const r=pathAlong(['scott','edie','jen'],t,s+1,s+3.6,C.goldHi);x.restore();if(r.prog>r.L[1]*.5){const mx=(r.pts[0][0]+r.pts[1][0])/2,my=(r.pts[0][1]+r.pts[1][1])/2;x.save();x.globalAlpha=F.flowA;x.translate(mx,my);x.rotate(Math.PI/4);x.fillStyle=C.bg;x.strokeStyle=C.gold;x.lineWidth=2.5;x.shadowColor=C.gold;x.shadowBlur=14;x.fillRect(-11,-11,22,22);x.strokeRect(-11,-11,22,22);x.restore();txt('SLOP-GATE',mx,my-24,'500 17px PM',C.gold,F.flowA,'center',2)}
+  ['scott','edie','jen'].forEach(i=>{F.n[i]=Math.max(F.n[i]||0,F.flowA)});
+  const steps=[['1','Scott writes it',C.claude],['2','Humanize + slop-gate',C.gold],['3','Edie edits it',C.claude],['4','Jen signs it off',C.claude]];
+  lowerSteps('Before anything is posted',steps,t,s+.6,s+4.8,F.flowA)}
+ if(F.flowB>0){x.save();x.globalAlpha=F.flowB;pathAlong(['dollar','jen','exchange','caleb','nathan'],t,s+5.2,s+8,C.goldHi);x.restore();
+  ['dollar','jen','caleb','nathan','exchange'].forEach(i=>{F.n[i]=Math.max(F.n[i]||0,F.flowB)});
+  const steps=[['1','Agent writes an ASK-JEN note',C.claude],['2','Jen decides or finds a way round',C.claude],['3','Caleb advises via Team Exchange',C.gpt],['4','Nathan: money and irreversible calls',C.goldHi]];
+  lowerSteps('When an agent needs me',steps,t,s+4.8,S.flow[1],F.flowB)}
+}
+function lowerSteps(title,steps,t,a,b,al0){const al=win(t,a,b,.4)*al0;if(al<=0)return;const h=330;x.save();x.globalAlpha=al;const g=x.createLinearGradient(0,H-h-80,0,H);g.addColorStop(0,'rgba(12,14,17,0)');g.addColorStop(.3,'rgba(12,14,17,.93)');g.addColorStop(1,'rgba(12,14,17,.98)');x.fillStyle=g;x.fillRect(0,H-h-80,W,h+80);x.restore();
+ txt(title.toUpperCase(),64,H-h+20,'500 21px PM',C.gold,al,'left',2.5);
+ steps.forEach((st,i)=>{const k=oc(seg(t,a+.5+i*.55,a+1+i*.55));const y=H-h+62+i*62;x.save();x.globalAlpha=al*k;x.strokeStyle=rgba(st[2],.95);x.lineWidth=2;x.beginPath();x.arc(84,y+12,17,0,7);x.stroke();x.restore();txt(st[0],84,y+20,'700 20px SG',st[2],al*k,'center');txt(st[1],120,y+22,'500 29px IN',C.spark,al*k);if(i<steps.length-1){x.save();x.globalAlpha=al*k*.5;x.strokeStyle=C.muted;x.beginPath();x.moveTo(84,y+31);x.lineTo(84,y+50);x.stroke();x.restore()}})}
+function ticker(t){const a=S.train[0]+1,b=S.train[0]+6.4;const al=win(t,a,b,.4);if(al<=0)return;
+ const px=600,py=330,rowH=36;x.save();x.globalAlpha=al*.84;x.fillStyle='rgba(16,19,24,.9)';x.strokeStyle=rgba(C.gold,.4);x.beginPath();x.roundRect(px,py,460,rowH*14+96,16);x.fill();x.stroke();x.restore();
+ txt('CYCLE 1 · SAWHOKEE',px+24,py+40,'500 18px PM',C.gold,al,'left',2);
+ const k=seg(t,S.train[0]+1.2,S.train[0]+5.2);
+ cycle.forEach((c,i)=>{const v=cl((k*14-i)*1.5);if(v<=0)return;const y=py+80+i*rowH;txt(c[0],px+24,y,'500 17px PM',C.muted,al*v);txt(N[c[1]].label,px+120,y,'600 21px IN',C.spark,al*v);txt(c[2].toUpperCase(),px+436,y,'500 17px PM',c[2]==='Pass'?C.gpt:C.gold,al*v,'right',1.5)});
+ lower([['14 agents trained in 7 days. 3 partials.',C.spark],'Every result goes on record.'],t,S.train[0]+4.4,S.train[0]+6.4);
+}
+
+function render(t){
+ CA=cam(t);const F=focus(t);
+ bg(t);drawEdges(t,F);
+ // flows add highlights before nodes are drawn: compute once early
+ if(F.flowA>0)['scott','edie','jen'].forEach(i=>F.n[i]=Math.max(F.n[i]||0,F.flowA));
+ if(F.flowB>0)['dollar','jen','caleb','nathan','exchange'].forEach(i=>F.n[i]=Math.max(F.n[i]||0,F.flowB));
+ drawNodes(t,F);overlay(t,F);
+ // subtle vignette
+ const v=x.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,H*.78);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.45)');x.fillStyle=v;x.fillRect(0,0,W,H);
+}
+window.render=render;window.DUR=DUR;window.META={AGENTS,CONNS,JENREP};
+window.ready=Promise.all([document.fonts.load('700 40px SG'),document.fonts.load('500 20px PM'),document.fonts.load('400 20px IN'),document.fonts.load('600 20px IN'),new Promise(r=>{LOGO.complete?r():LOGO.onload=r})]).then(()=>{const q=new URLSearchParams(location.search);render(+(q.get('t')||0))});
+</script></body></html>
